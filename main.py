@@ -8,6 +8,10 @@ import xbmcvfs
 import threading
 from urllib.parse import urlencode, parse_qsl
 
+# TODO
+# REMOVE AFTER TESTING
+import random
+
 import xbmcgui
 import xbmcplugin
 from xbmcaddon import Addon
@@ -429,22 +433,47 @@ def fetch_more_items(mode, page):
     
     dataFile = "asyncLoadResults.json"
     DATA_PATH = USERDATA_PATH + dataFile
+    
+    file_data = []
+    with xbmcvfs.File(DATA_PATH, 'r') as file:
+        raw = file.read()
+        if raw.strip():
+            try:
+                file_data = json.loads(raw)
+            except json.JSONDecodeError:
+                print("EXCEPT HAPPENED")
+                file_data = []
 
-    with xbmcvfs.File(DATA_PATH, 'r+') as file:
-        # Get existing data
-        file_data = json.load(file)
+    for video in r:
+        video["videoURL"], video["description"], video["tags"] = get_video(video["id"])
+    
+    file_data.extend(r)
 
-        for video in r:
-            video["videoURL"], video["description"], video["tags"] = get_video(video["id"])
+    with xbmcvfs.File(DATA_PATH, 'w') as file:
+
+
+        #print(f"Data to be appended: {r}")
 
         # Append new data
-        file_data["data"].append(r)
-
+        #file_data["data"].append(r)
+        #print(f"File data is: {file_data}")
+        #file_data.append(r)
+        #file_data.extend(r)
+        
+        print(f"File data after append: {file_data}")
         # Back to the beginning of the file
-        file.seek(0)
+        #file.seek(0)
         
         # Write to the file
+        #json.dumps(file_data, ensure_ascii=False, indent=4)
         file.write(json.dumps(file_data, ensure_ascii=False, indent=4))
+
+
+    # Verify write worked
+    with xbmcvfs.File(DATA_PATH, 'r') as file:
+        new_raw = file.read()
+        new_data = json.loads(new_raw)
+        print(f"VERIFY: File now has {len(new_data)} items")
 
 
     print(f"Final check API is: {API}")
@@ -456,11 +485,8 @@ def fetch_more_items(mode, page):
 
 
 def list_videos(mode, page):
-    # Add to the page for pagination
-    page += 1
+    print(f"ENTER listing_function with page={page} (thread={threading.current_thread().name})")
 
-    print(f"PAGE NUMBER IS {page}")
-    
     # Maybe you don't need this?
     # TODO TEST
     genre_info = {}
@@ -474,12 +500,17 @@ def list_videos(mode, page):
             data = json.loads(content)
 
             start = page * 15
-            end = start + page
+            end = start + 15
 
             genre_info = data[start:end]
             print(f"Data is: {genre_info}")
     else:
         genre_info = get_videos(mode)
+
+    # Add to the page for pagination
+    #page += 1
+
+    print(f"PAGE NUMBER IS {page}")
 
     # Handle async pagination
     #if not results:
@@ -493,6 +524,10 @@ def list_videos(mode, page):
     xbmcplugin.setPluginCategory(HANDLE, 'Videos')
     xbmcplugin.setContent(HANDLE, 'movies')
     videos = genre_info
+
+    # List of elements to add to the screen
+    listing = []
+
     for video in videos:
         print(f'Title of video being processed: {video["name"]}')
         list_item = xbmcgui.ListItem(label=video['name'])
@@ -516,7 +551,10 @@ def list_videos(mode, page):
         if mode == "pagination":
             videoURL, description, tags = video["videoURL"], video["description"], video["tags"]
         else:
+            #TODO
+            # The second assignment is mostly unnecessary but it's just for testing
             videoURL, description, tags = get_video(video["id"])
+            video["videoURL"], video["description"], video["tags"] = videoURL, description, tags
         
         # ListItem.setInfo is partialy deprecated so we are using the InfoTag as well to future-proof things.
         info_tag.setCast([actor])
@@ -549,29 +587,50 @@ def list_videos(mode, page):
 
         url = get_url(action='play', video=videoURL)
         is_folder = False
-        xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
+        listing.append((url, list_item, is_folder))
+        #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
+
+    # Save the data to the file
+    dataFile = "asyncLoadResults.json"
+    DATA_PATH = USERDATA_PATH + dataFile
+
+    with xbmcvfs.File(DATA_PATH, 'w') as file:
+        # Write to the file
+        file.write(json.dumps(videos, ensure_ascii=False, indent=4))
 
     # Add a list item to load more
-    refresh_item = xbmcgui.ListItem(label="Load More")
-    url = get_url(action='listing', mode='pagination', page=page)
-    is_folder = True
-    xbmcplugin.addDirectoryItem(HANDLE, url, refresh_item, is_folder)
+    #TODO
+    # REMOVE AFTER TESTING
+    randnumber = random.randint(0,100)
 
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
+    refresh_item = xbmcgui.ListItem(label=f"Load More. Page: {page+1}. Randnumber: {randnumber}")
+    next_url = get_url(action='listing', mode='pagination', page=page+1)
+    is_folder = True
+    listing.append((next_url, refresh_item, is_folder))
+    #xbmcplugin.addDirectoryItem(HANDLE, url, refresh_item, is_folder)
+
+    print(f"ENDING directory with {len(listing)} items, next_url page={page+1}")
+
+    # Batch add once
+    xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
 
     # If there was an update through pagination, refresh the view
     if mode == "pagination":
         print("THERE WAS PAGINATION AND TRIED TO REFRESH")
-        xbmcplugin.endOfDirectory(HANDLE, True, updateListing=True)
+        xbmcplugin.endOfDirectory(HANDLE, succeeded=True, updateListing=True, cacheToDisc=False)
     else:
-        xbmcplugin.endOfDirectory(HANDLE)
+        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
 
     # Start calling the async function to load more data
-    fetch_more_items(mode, page)
+    fetch_more_items(mode, page+1)
     #thread = threading.Thread(target=fetch_more_items, args=(mode,))
     #thread.daemon = True
     #thread.start()
+
+    print("listing_function COMPLETE")
 
 def get_video(id):
     xbmc.log("id is %s" % id, xbmc.LOGDEBUG)
@@ -671,7 +730,14 @@ def router(paramstring):
 
     elif params['action'] == 'listing':
         # Handle there being no page provided
-        page = int(params.get('page', 0))
+        try:
+            page = int(params.get('page', 0))
+        except:
+            page = 0
+
+        print(f"Page number being passed in router: {page} (full params: {params})")
+
+        #print(f"Page number being passed in router: {page}")
         
         list_videos(params['mode'], page)
     elif params['action'] == 'play':
