@@ -249,6 +249,16 @@ def menu():
         is_folder = True
         xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
 
+    # Set default listing here, independent of if user is authenticated
+    listing = []
+
+    # All Videos
+    allVideos = xbmcgui.ListItem(label="All Videos")
+    allVideosURL = get_url(action='listing', mode='all_videos')
+
+    listing.append((allVideosURL, allVideos, True))
+    
+
     DATA_PATH = USERDATA_PATH + "data.json"
     try:
         with xbmcvfs.File(DATA_PATH) as file:
@@ -256,28 +266,51 @@ def menu():
             data = json.loads(content)
 
             if data["authenticated"] == True:
+                is_folder = True
+                
                 subscriptions = xbmcgui.ListItem(label="Subscriptions")
                 subscriptionsURL = get_url(action='listing', mode='subscriptions')
                 
+                # Append subscriptions to listing variable
+                listing.append((subscriptionsURL, subscriptions, is_folder))
+
                 logout = xbmcgui.ListItem(label="Logout")
                 logoutURL = get_url(action='logout')
 
-                is_folder = True
-                xbmcplugin.addDirectoryItems(HANDLE, [(subscriptionsURL, subscriptions, is_folder), (logoutURL, logout, is_folder)])
+                # Append logout to listing variable
+                listing.append((logoutURL, logout, is_folder))
+
+                #xbmcplugin.addDirectoryItems(HANDLE, [(subscriptionsURL, subscriptions, is_folder), (logoutURL, logout, is_folder)])
             else:
-                list_item = xbmcgui.ListItem(label="Login")
-                url = get_url(action='login', mode='password', token='0')
                 is_folder = True
-                xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
+                
+                # LOGIN
+
+                login = xbmcgui.ListItem(label="Login")
+                loginURL = get_url(action='login', mode='password', token='0')
+                
+                listing.append((loginURL, login, is_folder))
+               
+                #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
     except:
         # If there's an exception here, it likely means the file doesn't exist so login
-        list_item = xbmcgui.ListItem(label="Login")
-        url = get_url(action='login', mode='password', token='0')
         is_folder = True
-        xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
 
-    xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
+        # LOGIN
+
+        login = xbmcgui.ListItem(label="Login")
+        loginURL = get_url(action='login', mode='password', token='0')
+        
+        listing.append((loginURL, login, is_folder))
+
+    # Batch add once
+    xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
+
+        #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
+
+    #xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     xbmcplugin.endOfDirectory(HANDLE)
+    
     #if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "":
         #xbmcgui.Dialog().notification('Error', 'Please specify a PeerTube instance in the add-on settings.', xbmcgui.NOTIFICATION_ERROR)
         #return
@@ -344,7 +377,7 @@ def get_token():
         # CHANGE LATER
         # CHANGE LATER
         # CHANGE LATER
-        request = requests.get(f"https://videos.solomon.tech/api/v1/users/me", headers=headers)
+        request = requests.get(f"{API}/users/me", headers=headers)
     
         if request.status_code == 401:
             
@@ -369,21 +402,28 @@ def get_token():
          
             
 
-def get_videos(mode):
-    # Get the access key
-    access_token = get_token()
+def get_videos(mode, page):
+    
+    # Only try to get the access token if the user is performing an authenticated request
+    if mode != "all_videos":
+        # Get the access key
+        access_token = get_token()
 
-    # If there was an error, also cancel this function
-    if not access_token:
-        return False
+        # If there was an error, also cancel this function
+        if not access_token:
+            return False
+
+    start = page * 15
 
     if mode == "subscriptions":
         headers = {"Authorization": f"Bearer {access_token}"}
-        request = requests.get(f"{API}/users/me/subscriptions/videos", headers=headers)
+        request = requests.get(f"{API}/users/me/subscriptions/videos?start={start}", headers=headers)
     else:
         # Default request
-        request = requests.get(f"{API}/videos")
+        request = requests.get(f"{API}/videos?start={start}")
+    
     r = request.json()
+    print(r)
     # Return the data
     return r["data"]
 
@@ -415,7 +455,7 @@ def fetch_more_items(mode, page):
         return False
     
     # Get pagination start
-    start = page * 15
+    #start = page * 15
     #start = "16"
     print(f"STARTING AT {start}")
 
@@ -431,25 +471,25 @@ def fetch_more_items(mode, page):
 
     print(f"MADE REQUEST: {r}")
     
-    dataFile = "asyncLoadResults.json"
-    DATA_PATH = USERDATA_PATH + dataFile
+    #dataFile = "asyncLoadResults.json"
+    #DATA_PATH = USERDATA_PATH + dataFile
     
-    file_data = []
-    with xbmcvfs.File(DATA_PATH, 'r') as file:
-        raw = file.read()
-        if raw.strip():
-            try:
-                file_data = json.loads(raw)
-            except json.JSONDecodeError:
-                print("EXCEPT HAPPENED")
-                file_data = []
+    #file_data = []
+    #with xbmcvfs.File(DATA_PATH, 'r') as file:
+        #raw = file.read()
+        #if raw.strip():
+            #try:
+                #file_data = json.loads(raw)
+            #except json.JSONDecodeError:
+                #print("EXCEPT HAPPENED")
+                #file_data = []
 
     for video in r:
         video["videoURL"], video["description"], video["tags"] = get_video(video["id"])
     
-    file_data.extend(r)
+    #file_data.extend(r)
 
-    with xbmcvfs.File(DATA_PATH, 'w') as file:
+    #with xbmcvfs.File(DATA_PATH, 'w') as file:
 
 
         #print(f"Data to be appended: {r}")
@@ -466,14 +506,16 @@ def fetch_more_items(mode, page):
         
         # Write to the file
         #json.dumps(file_data, ensure_ascii=False, indent=4)
-        file.write(json.dumps(file_data, ensure_ascii=False, indent=4))
+        
+        # This used to be uncommented, not the line above
+        #file.write(json.dumps(file_data, ensure_ascii=False, indent=4))
 
 
     # Verify write worked
-    with xbmcvfs.File(DATA_PATH, 'r') as file:
-        new_raw = file.read()
-        new_data = json.loads(new_raw)
-        print(f"VERIFY: File now has {len(new_data)} items")
+    #with xbmcvfs.File(DATA_PATH, 'r') as file:
+        #new_raw = file.read()
+        #new_data = json.loads(new_raw)
+        #print(f"VERIFY: File now has {len(new_data)} items")
 
 
     print(f"Final check API is: {API}")
@@ -491,21 +533,22 @@ def list_videos(mode, page):
     # TODO TEST
     genre_info = {}
 
-    if mode == "pagination":
-        dataFile = "asyncLoadResults.json"
-        DATA_PATH = USERDATA_PATH + dataFile
+    #if mode == "pagination":
+        #dataFile = "asyncLoadResults.json"
+        #DATA_PATH = USERDATA_PATH + dataFile
         # Read the data
-        with xbmcvfs.File(DATA_PATH, 'r') as file:
-            content = file.read()
-            data = json.loads(content)
+        #with xbmcvfs.File(DATA_PATH, 'r') as file:
+            #content = file.read()
+            #data = json.loads(content)
 
-            start = page * 15
-            end = start + 15
+            #start = page * 15
+            #end = start + 15
 
-            genre_info = data[start:end]
-            print(f"Data is: {genre_info}")
-    else:
-        genre_info = get_videos(mode)
+            #genre_info = data[start:end]
+            #print(f"Data is: {genre_info}")
+    #else:
+    
+    genre_info = get_videos(mode, page)
 
     # Add to the page for pagination
     #page += 1
@@ -538,8 +581,14 @@ def list_videos(mode, page):
         #info_tag.setPlot(video["truncatedDescription"])
 
         channelName = video["channel"]["displayName"]
-        channelAvatar = video["channel"]["avatars"][1]["fileUrl"]
-        actor = xbmc.Actor(name=channelName, thumbnail=channelAvatar)
+        actor = xbmc.Actor(name=channelName)
+
+        # If there is no avatar
+        try:
+            channelAvatar = video["channel"]["avatars"][1]["fileUrl"]
+            actor = xbmc.Actor(name=channelName, thumbnail=channelAvatar)
+        except IndexError:
+            pass
 
         date = datetime.fromisoformat(video["publishedAt"][:-1])
         publishedDate = date.strftime("%Y-%m-%d")
@@ -548,13 +597,13 @@ def list_videos(mode, page):
         views = video["views"]
         likes = video["likes"]
         
-        if mode == "pagination":
-            videoURL, description, tags = video["videoURL"], video["description"], video["tags"]
-        else:
-            #TODO
-            # The second assignment is mostly unnecessary but it's just for testing
-            videoURL, description, tags = get_video(video["id"])
-            video["videoURL"], video["description"], video["tags"] = videoURL, description, tags
+        #if mode == "pagination":
+            #videoURL, description, tags = video["videoURL"], video["description"], video["tags"]
+        #else:
+        #TODO
+        # The second assignment is mostly unnecessary but it's just for testing
+        videoURL, description, tags = get_video(video["id"])
+        video["videoURL"], video["description"], video["tags"] = videoURL, description, tags
         
         # ListItem.setInfo is partialy deprecated so we are using the InfoTag as well to future-proof things.
         info_tag.setCast([actor])
@@ -591,20 +640,20 @@ def list_videos(mode, page):
         #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
 
     # Save the data to the file
-    dataFile = "asyncLoadResults.json"
-    DATA_PATH = USERDATA_PATH + dataFile
+    #dataFile = "asyncLoadResults.json"
+    #DATA_PATH = USERDATA_PATH + dataFile
 
-    with xbmcvfs.File(DATA_PATH, 'w') as file:
+    #with xbmcvfs.File(DATA_PATH, 'w') as file:
         # Write to the file
-        file.write(json.dumps(videos, ensure_ascii=False, indent=4))
+        #file.write(json.dumps(videos, ensure_ascii=False, indent=4))
 
     # Add a list item to load more
-    #TODO
-    # REMOVE AFTER TESTING
-    randnumber = random.randint(0,100)
-
-    refresh_item = xbmcgui.ListItem(label=f"Load More. Page: {page+1}. Randnumber: {randnumber}")
-    next_url = get_url(action='listing', mode='pagination', page=page+1)
+    # Add two to the page number so it looks like the page starts at 1
+    # Improves UX
+    refresh_item = xbmcgui.ListItem(label=f"Load More. Page: {page+2}.")
+    
+    # Use actually correct page number behind the scenes (page+1)
+    next_url = get_url(action='listing', mode=mode, page=page+1)
     is_folder = True
     listing.append((next_url, refresh_item, is_folder))
     #xbmcplugin.addDirectoryItem(HANDLE, url, refresh_item, is_folder)
@@ -615,17 +664,19 @@ def list_videos(mode, page):
     xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
 
     # If there was an update through pagination, refresh the view
-    if mode == "pagination":
-        print("THERE WAS PAGINATION AND TRIED TO REFRESH")
-        xbmcplugin.endOfDirectory(HANDLE, succeeded=True, updateListing=True, cacheToDisc=False)
-    else:
-        xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
+    #if mode == "pagination":
+        #print("THERE WAS PAGINATION AND TRIED TO REFRESH")
+        #xbmcplugin.endOfDirectory(HANDLE, succeeded=True, updateListing=True, cacheToDisc=False)
+    #else:
+    xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=False)
 
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_VIDEO_YEAR)
 
     # Start calling the async function to load more data
-    fetch_more_items(mode, page+1)
+    #fetch_more_items(mode, page+1)
+    
+
     #thread = threading.Thread(target=fetch_more_items, args=(mode,))
     #thread.daemon = True
     #thread.start()
@@ -637,7 +688,7 @@ def get_video(id):
     API = window.getProperty('API')
     request = requests.get(f"{API}/videos/{id}")
     r = request.json()
-    xbmc.log("request is %s" % r, xbmc.LOGDEBUG)
+    #xbmc.log("request is %s" % r, xbmc.LOGDEBUG)
     return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
 
 
@@ -667,8 +718,9 @@ def play_video(path):
     #print(path)
 
 
+    # BEGIN INPUT STREAM ADAPTIVE
     STREAM_URL = path
-
+    
     is_helper = inputstreamhelper.Helper(PROTOCOL)
     if not is_helper.check_inputstream():
         xbmcgui.Dialog().notification('Error', 'InputStream Adaptive not available', xbmcgui.NOTIFICATION_ERROR)
@@ -688,6 +740,8 @@ def play_video(path):
     list_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
 
     xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, list_item)
+
+    # END INPUTSTREAM ADAPTIVE
 
 
 
