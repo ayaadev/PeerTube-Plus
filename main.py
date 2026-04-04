@@ -8,9 +8,13 @@ import xbmcvfs
 import threading
 from urllib.parse import urlencode, parse_qsl
 
-# TODO
-# REMOVE AFTER TESTING
-import random
+# Cache results
+try:
+    import StorageServer
+except:
+    import storageserverdummy as StorageServer
+
+cache = StorageServer.StorageServer("PeerTube-Plus", 24)
 
 import xbmcgui
 import xbmcplugin
@@ -36,6 +40,13 @@ USERDATA_PATH = xbmcvfs.translatePath(f'special://userdata/addon_data/{ADDON_ID}
 #CUSTOM_INSTANCE = xbmcplugin.getSetting(HANDLE,"custom_instance")
 CUSTOM_INSTANCE = Addon().getSetting('custom_instance')
 API = f"https://{CUSTOM_INSTANCE}/api/v1"
+
+# Create a custom exception for use in the functions
+class StopExecution(Exception):
+    def __init__(self, message=None, data=None):
+        self.message = message
+        self.data = data
+        super().__init__(message)
 
 def get_url(**kwargs):
     return '{}?{}'.format(URL, urlencode(kwargs))
@@ -81,7 +92,6 @@ def login(mode, token):
         # We can't use the password input because it hashes the value
         password = dialog.input('Please enter your password', option=xbmcgui.ALPHANUM_HIDE_INPUT)
 
-    #try:
     url = f"{API}/users/token"
 
     if mode == "password":
@@ -108,7 +118,12 @@ def login(mode, token):
     
     elif status == 401:
         if credentials["code"] == "missing_two_factor":
-            error = dialog.ok('Error logging in', "Your account requires two factor authentication which is unsupported at this time. Sorry for the inconvenience.")
+            twoFactorCode = dialog.input('Please enter your two factor authentication code.')
+            headers = {"x-peertube-otp": twoFactorCode}
+            r = requests.post(url, data=payload, headers=headers)
+            status = r.status_code
+            credentials = r.json()
+            #error = dialog.ok('Error logging in', "Your account requires two factor authentication which is unsupported at this time. Sorry for the inconvenience.")
 
         elif credentials["code"] == "invalid_token":
             error = dialog.ok('Session expired', "Your session as expired. Please login again.")
@@ -124,12 +139,13 @@ def login(mode, token):
                 
                 # Save the file
                 file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+            return
         
         # Apparently this is possible according to the API docs.
         else:
             error = dialog.ok('Error logging in', "There was an unspecified authentication failure.")
-        
-        return
+            return
         
     access_token = credentials["access_token"]
     refresh_token = credentials["refresh_token"]
@@ -235,19 +251,26 @@ def logout():
 
     except Exception as e:
         traceback.print_exc()
-        error = dialog.notification('Error', f'An unexpected error occured. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification('Error', f'An unexpected error occurred. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
 
-# The selection menu of the add-on
+# The selection menu of the addon
 def menu():
+    cache.delete("%")
+
+    # Check if the custom instance was set
+    if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "" or CUSTOM_INSTANCE.startswith("http"):
+        xbmcgui.Dialog().ok('Custom instance not specified', 'Please specify a PeerTube instance in the addon settings. It cannot start with "http". For example, write "instance.com" instead of "https://instance.com".')
+        return
+
     xbmcplugin.setPluginCategory(HANDLE, 'Menu')
     xbmcplugin.setContent(HANDLE, 'movies')
 
     # If the path doesn't exist, the user likely wants to login
-    if not xbmcvfs.exists(USERDATA_PATH):
-        list_item = xbmcgui.ListItem(label="Login")
-        url = get_url(action='login', mode='password', token='0')
-        is_folder = True
-        xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
+    #if not xbmcvfs.exists(USERDATA_PATH):
+        #list_item = xbmcgui.ListItem(label="Login")
+        #url = get_url(action='login', mode='password', token='0')
+        #is_folder = True
+        #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
 
     # Set default listing here, independent of if user is authenticated
     listing = []
@@ -255,9 +278,17 @@ def menu():
     # All Videos
     allVideos = xbmcgui.ListItem(label="All Videos")
     allVideosURL = get_url(action='listing', mode='all_videos')
-
     listing.append((allVideosURL, allVideos, True))
     
+    # Trending
+    trending = xbmcgui.ListItem(label="Trending")
+    trendingURL = get_url(action='listing', mode='trending')
+    listing.append((trendingURL, trending, True))
+
+    # Local Videos
+    localVideos = xbmcgui.ListItem(label="Local Videos")
+    localVideosURL = get_url(action='listing', mode='local_videos')
+    listing.append((localVideosURL, localVideos, True))
 
     DATA_PATH = USERDATA_PATH + "data.json"
     try:
@@ -291,7 +322,6 @@ def menu():
                 
                 listing.append((loginURL, login, is_folder))
                
-                #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
     except:
         # If there's an exception here, it likely means the file doesn't exist so login
         is_folder = True
@@ -306,16 +336,8 @@ def menu():
     # Batch add once
     xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
 
-        #xbmcplugin.addDirectoryItem(HANDLE, url, list_item, is_folder)
-
     #xbmcplugin.addSortMethod(HANDLE, xbmcplugin.SORT_METHOD_LABEL_IGNORE_THE)
     xbmcplugin.endOfDirectory(HANDLE)
-    
-    #if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "":
-        #xbmcgui.Dialog().notification('Error', 'Please specify a PeerTube instance in the add-on settings.', xbmcgui.NOTIFICATION_ERROR)
-        #return
-    #else:
-        #print("YAY!")
 
 #def list_instances():
     #xbmcplugin.setPluginCategory(HANDLE, 'Peertube Servers')
@@ -372,11 +394,6 @@ def get_token():
         access_token = credentials["access_token"]
 
         headers = {"Authorization": f"Bearer {access_token}"}
-        print(f"API IS {API}")
-        print(f"INSTANCE IS {CUSTOM_INSTANCE}")
-        # CHANGE LATER
-        # CHANGE LATER
-        # CHANGE LATER
         request = requests.get(f"{API}/users/me", headers=headers)
     
         if request.status_code == 401:
@@ -393,19 +410,22 @@ def get_token():
         elif request.status_code == 200:
             return access_token
         else:
-            error = dialog.notification('Error', 'An unexpected error occured while performing an authenticated action.', xbmcgui.NOTIFICATION_ERROR)
+            error = dialog.notification('Error', 'An unexpected error occurred while performing an authenticated action.', xbmcgui.NOTIFICATION_ERROR)
             return False
     except Exception as e:
-        error = dialog.notification('Error', f'An unexpected error occured while performing an authenticated action. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification('Error', f'An unexpected error occurred while performing an authenticated action. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
         traceback.print_exc()
         return False
          
             
-
-def get_videos(mode, page):
+# Must take instance_url to invalidate cache if the user changes their instance
+def get_videos(instance_url, mode, page):
     
+    start = page * 15
+    queryParams = f"?start={start}&hasHLSFiles=true"
+
     # Only try to get the access token if the user is performing an authenticated request
-    if mode != "all_videos":
+    if mode == "subscriptions":
         # Get the access key
         access_token = get_token()
 
@@ -413,17 +433,23 @@ def get_videos(mode, page):
         if not access_token:
             return False
 
-    start = page * 15
-
-    if mode == "subscriptions":
         headers = {"Authorization": f"Bearer {access_token}"}
-        request = requests.get(f"{API}/users/me/subscriptions/videos?start={start}", headers=headers)
+        request = requests.get(f"{API}/users/me/subscriptions/videos{queryParams}", headers=headers)
+    if mode == "local_videos":
+        request = requests.get(f"{API}/videos{queryParams}&isLocal=true")
+    if mode == "trending":
+        request = requests.get(f"{API}/videos{queryParams}&sort=-trending")
     else:
         # Default request
-        request = requests.get(f"{API}/videos?start={start}")
+        request = requests.get(f"{API}/videos{queryParams}")
     
     r = request.json()
-    print(r)
+    
+    # If there were no results
+    if not r["data"]:
+        error = dialog.notification('Error', 'No results were found. Please try another feed.', xbmcgui.NOTIFICATION_ERROR)
+        raise StopExecution("No results were found", data=[])
+
     # Return the data
     return r["data"]
 
@@ -486,7 +512,7 @@ def fetch_more_items(mode, page):
 
     for video in r:
         video["videoURL"], video["description"], video["tags"] = get_video(video["id"])
-    
+
     #file_data.extend(r)
 
     #with xbmcvfs.File(DATA_PATH, 'w') as file:
@@ -529,10 +555,6 @@ def fetch_more_items(mode, page):
 def list_videos(mode, page):
     print(f"ENTER listing_function with page={page} (thread={threading.current_thread().name})")
 
-    # Maybe you don't need this?
-    # TODO TEST
-    genre_info = {}
-
     #if mode == "pagination":
         #dataFile = "asyncLoadResults.json"
         #DATA_PATH = USERDATA_PATH + dataFile
@@ -548,12 +570,12 @@ def list_videos(mode, page):
             #print(f"Data is: {genre_info}")
     #else:
     
-    genre_info = get_videos(mode, page)
-
-    # Add to the page for pagination
-    #page += 1
-
-    print(f"PAGE NUMBER IS {page}")
+    # Cache results for 24 hours
+    # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
+    try:
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, mode, page)
+    except StopExecution:
+        return
 
     # Handle async pagination
     #if not results:
@@ -562,8 +584,10 @@ def list_videos(mode, page):
         #genre_info = results["data"]
 
     # If there was an error upstream
+    # This should be covered by the except, though
     if not genre_info:
         return False
+
     xbmcplugin.setPluginCategory(HANDLE, 'Videos')
     xbmcplugin.setContent(HANDLE, 'movies')
     videos = genre_info
@@ -600,9 +624,26 @@ def list_videos(mode, page):
         #if mode == "pagination":
             #videoURL, description, tags = video["videoURL"], video["description"], video["tags"]
         #else:
-        #TODO
-        # The second assignment is mostly unnecessary but it's just for testing
-        videoURL, description, tags = get_video(video["id"])
+
+        try:
+            # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
+            videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, video["id"])
+        except StopExecution as e:
+            dialog = xbmcgui.Dialog()
+
+            # Manually clear the get_videos cache so the error doesn't get cached in the results
+            cache.delete("get_videos")
+            
+            # If the error message has specific details (message = "Error getting video") then return a more detailed response
+            if e.message == "Error getting video":
+                error = dialog.ok("Error getting video", f"One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, and not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.\n\nError message: {e.data[0]}\nVideo Title: {video["name"]}\nVideo URL: {e.data[1]}")
+            else:
+                error = dialog.ok("An unexpected error occurred", f"Error message: {e.data[0]}")
+            return
+        
+        # NOTE
+        # The second assignment is mostly unnecessary - change in the future
+
         video["videoURL"], video["description"], video["tags"] = videoURL, description, tags
         
         # ListItem.setInfo is partialy deprecated so we are using the InfoTag as well to future-proof things.
@@ -647,16 +688,20 @@ def list_videos(mode, page):
         # Write to the file
         #file.write(json.dumps(videos, ensure_ascii=False, indent=4))
 
-    # Add a list item to load more
-    # Add two to the page number so it looks like the page starts at 1
-    # Improves UX
-    refresh_item = xbmcgui.ListItem(label=f"Load More. Page: {page+2}.")
     
-    # Use actually correct page number behind the scenes (page+1)
-    next_url = get_url(action='listing', mode=mode, page=page+1)
-    is_folder = True
-    listing.append((next_url, refresh_item, is_folder))
-    #xbmcplugin.addDirectoryItem(HANDLE, url, refresh_item, is_folder)
+    # Do a preliminary check to see if there's most likely another page
+    # This will still show a next page button even if the results end on a number divisible by 15
+    # Could do an API check in the future
+    if len(videos) == 15:
+        # Add a list item to load more
+        # Add two to the page number so it looks like the page starts at 1
+        # Improves UX
+        refresh_item = xbmcgui.ListItem(label=f"Load More (page {page+2})")
+    
+        # Use actually correct page number behind the scenes (page+1)
+        next_url = get_url(action='listing', mode=mode, page=page+1)
+        is_folder = True
+        listing.append((next_url, refresh_item, is_folder))
 
     print(f"ENDING directory with {len(listing)} items, next_url page={page+1}")
 
@@ -683,13 +728,34 @@ def list_videos(mode, page):
 
     print("listing_function COMPLETE")
 
-def get_video(id):
+# Must take instance_url to prevent results from other instances being used
+# Not used in the function itself
+def get_video(instance_url, id):
     xbmc.log("id is %s" % id, xbmc.LOGDEBUG)
     API = window.getProperty('API')
-    request = requests.get(f"{API}/videos/{id}")
-    r = request.json()
+    
+    try:
+        request = requests.get(f"{API}/videos/{id}")
+        r = request.json()
+ 
+        # There can be a "does_not_respect_follow_constraints" error here, so check the status code and handle the error gracefully
+        # See: https://framacolibri.org/t/embed-error-cannot-get-this-video-regarding-follow-constraints/24390
+        # See: https://docs.joinpeertube.org/api-rest-reference.html#section/Errors
+
+        # If everything was okay, return
+        if request.status_code == 200:
+            return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
+        else:
+            detail = r["detail"]
+            originUrl = r["originUrl"]
+
+            raise StopExecution("Error getting video", data=[detail, originUrl])
+
+    except requests.RequestException as e:
+        traceback.print_exc()
+        raise StopExecution("An unexpected error occurred", data=[e])
+
     #xbmc.log("request is %s" % r, xbmc.LOGDEBUG)
-    return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
 
 
 def play_video(path):

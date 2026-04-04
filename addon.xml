@@ -8,18 +8,19 @@ provider-name="AyaaDev">
   <import addon="script.module.addon.signals" version="0.0.6"/>
   <import addon="script.module.requests" version="2.25.1"/>
   <import addon="script.module.inputstreamhelper" version="0.8.5"/>
+  <import addon="script.common.plugin.cache" version="3.0.0"/>
 </requires>
 <extension point="xbmc.python.pluginsource" library="main.py">
   <provides>video</provides>
 </extension>
 <extension point="xbmc.addon.metadata">
-  <summary lang="en_GB">Next Gen Peertube Addon</summary>
-  <description lang="en_GB">A next-generation PeerTube addon for Kodi with features such as different feeds and logging in to your account.</description>
+  <summary lang="en_GB">PeerTube Plus - finally watch PeerTube on Kodi</summary>
+  <description lang="en_GB">A next-generation PeerTube addon for Kodi with features such as different feeds and account authentication with 2FA support!</description>
   <license>GPL-3.0-only</license>
   <source>https://github.com/ayaadev/PeerTube-Plus</source>
   <assets>
     <icon>resources/images/icon.png</icon>
-    <fanart>resources/images/fanart.jpg</fanart>
+    <fanart>resources/images/fanart.png</fanart>
   </assets>
 </extension>
 </addon>
