@@ -6,7 +6,7 @@
 
 ## Features
 - Ability to set a custom instance
-- Locally search the custom instance, or search across the entire PeerTube fediverse with SepiaSearch!
+- Locally search videos on the custom instance, or search across the entire PeerTube fediverse with SepiaSearch!
 - Different feeds (all videos, subscriptions, trending, local videos)
 - Account authentication
 - 2FA Support
@@ -107,7 +107,7 @@ To watch any video, simply click on your desired feed and locate the video you w
 ## Acknowledgements
 This project was inspired by and modified from Haui1112's [plugin.video.pt](https://github.com/Haui1112/plugin.video.pt) Kodi addon. Modifications include:
 1. Reworked instance selection. Users can arbitrarily set their instance in the addon settings. This avoids users' frustration when their instance is not listed (see [here](https://github.com/Haui1112/plugin.video.pt/issues/12)).
-2. Implemented both local and global search with SepiaSearch!
+2. Implemented both local and global search (SepiaSearch)!
 3. Fixed video playback and made it more reliable.
 4. Added more metadata to videos which makes them easier to identify in the list.
 5. Added view and like count to videos.
