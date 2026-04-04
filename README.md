@@ -87,6 +87,7 @@ If you would like to access your subscriptions feed, click "Login". Input your u
 <img width="538" height="493" alt="image" src="https://github.com/user-attachments/assets/6956db07-b2ed-4ee2-9085-00b52e7db30e" />
 
 You should now see the "Subscriptions" feed appear.
+
 <img width="539" height="609" alt="image" src="https://github.com/user-attachments/assets/a60eed9a-31ba-4119-8fbe-23cf8255a072" />
 
 To watch any video, simply click on your desired feed and locate the video you would like to play.
