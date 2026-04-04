@@ -21,6 +21,44 @@
 ## Requirements
 - Any PeerTube instance URL, even if you don't have an account. Please see the [configuration section below](https://github.com/ayaadev/PeerTube-Plus/tree/main#configuration).
 
+## Installation
+1. In the top left of Kodi, click on the settings wheel
+<img width="323" height="313" alt="image" src="https://github.com/user-attachments/assets/bff3ae4c-3f2f-49f9-b76b-a3670c0aeb06" />
+
+2. Navigate to "File manager"
+<img width="378" height="375" alt="image" src="https://github.com/user-attachments/assets/e3f5c304-1625-4ae9-a984-492923e8bd15" />
+
+3. Click on "Add source" and click on "<None>" in the window that appears
+<img width="514" height="999" alt="image" src="https://github.com/user-attachments/assets/234568dd-0df0-4e3d-8b31-664920c80ed5" />
+
+4. Input `https://ayaadev.github.io` and click "OK"
+<img width="551" height="319" alt="image" src="https://github.com/user-attachments/assets/1672844d-27bf-4229-bb80-ccb21758b752" />
+
+5. Enter a name for this source. You can name it anything, but I've named it "AyaaDev Repo" here. Click "OK"
+<img width="607" height="998" alt="image" src="https://github.com/user-attachments/assets/305b9856-09d8-4409-bc8b-8f8b8c97f5cf" />
+
+6. Navigate back and click on "Add-ons"
+<img width="567" height="359" alt="image" src="https://github.com/user-attachments/assets/b6589e6b-6fe9-4bc1-ad70-57375dc14475" />
+
+7. Click on "Install from zip file"
+
+8. Navigate to the name of the repository you created. In my case, it is "AyaaDev Repo"
+<img width="501" height="187" alt="image" src="https://github.com/user-attachments/assets/9591f491-9bdb-4d00-8221-e0a2e4689b8b" />
+
+9. Select the only result on the page
+<img width="696" height="210" alt="image" src="https://github.com/user-attachments/assets/cb27c08d-2d0a-4534-8d23-628b4a1ac161" />
+
+10. Click on "Install from repository"
+<img width="605" height="107" alt="image" src="https://github.com/user-attachments/assets/6c7c1b1a-0b6c-4f02-af82-6318850ba7f4" />
+
+11. Select "AyaaDev Kodi Repository"
+<img width="609" height="275" alt="image" src="https://github.com/user-attachments/assets/1ddc3002-7646-40c1-8642-5b1e6cd24c04" />
+
+12. Select "Video add-ons"
+<img width="596" height="312" alt="image" src="https://github.com/user-attachments/assets/6b83864d-9a10-4bdb-b3c4-9849c8e0b404" />
+
+13. Select "PeerTube Plus" and click install!
+
 ## Installing from source
 1. Run `git clone https://github.com/ayaadev/PeerTube-Plus.git`
 2. Run `zip -r plugin.video.peertube-plus.zip plugin.video.peertube-plus/`
@@ -49,6 +87,7 @@ If you would like to access your subscriptions feed, click "Login". Input your u
 <img width="538" height="493" alt="image" src="https://github.com/user-attachments/assets/6956db07-b2ed-4ee2-9085-00b52e7db30e" />
 
 You should now see the "Subscriptions" feed appear.
+
 <img width="539" height="609" alt="image" src="https://github.com/user-attachments/assets/a60eed9a-31ba-4119-8fbe-23cf8255a072" />
 
 To watch any video, simply click on your desired feed and locate the video you would like to play.
