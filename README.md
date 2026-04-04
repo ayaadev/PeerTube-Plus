@@ -6,6 +6,7 @@
 
 ## Features
 - Ability to set a custom instance
+- Locally search the custom instance, or globally search with SepiaSearch!
 - Different feeds (all videos, subscriptions, trending, local videos)
 - Account authentication
 - 2FA Support
@@ -13,7 +14,6 @@
 - Pagination on video feeds which increases responsiveness
 
 ## Planned features
-- Ability to search for videos
 - Torrent PeerTube videos
 
 **Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new) with your feature request.**
@@ -68,14 +68,15 @@ To watch any video, simply click on your desired feed and locate the video you w
 ## Acknowledgements
 This project was inspired by and modified from Haui1112's [plugin.video.pt](https://github.com/Haui1112/plugin.video.pt) Kodi addon. Modifications include:
 1. Reworked instance selection. Users can arbitrarily set their instance in the addon settings. This avoids users' frustration when their instance is not listed (see [here](https://github.com/Haui1112/plugin.video.pt/issues/12)).
-2. Fixed video playback and made it more reliable.
-3. Added more metadata to videos which makes them easier to identify in the list.
-4. Added view and like count to videos.
-5. Added separate feeds (all videos, subscriptions, trending, local videos).
-6. Setup pagination which makes load times faster and lets users keep browsing all videos in the feed.
-7. Cached results for faster load times.
-8. Implemented much more error checking, leading to a less buggy experience.
-9. Added authentication, so users can perform authenticated actions (e.g. subscriptions feed).
-10. Implemented two-factor support for authentication.
-11. Implemented automatic renewal of short-lived PeerTube API token.
-12. Et cetera.
+2. Implemented both local and global search with SepiaSearch!
+3. Fixed video playback and made it more reliable.
+4. Added more metadata to videos which makes them easier to identify in the list.
+5. Added view and like count to videos.
+6. Added separate feeds (all videos, subscriptions, trending, local videos).
+7. Setup pagination which makes load times faster and lets users keep browsing all videos in the feed.
+8. Cached results for faster load times.
+9. Implemented much more error checking, leading to a less buggy experience.
+10. Added authentication, so users can perform authenticated actions (e.g. subscriptions feed).
+11. Implemented two-factor support for authentication.
+12. Implemented automatic renewal of short-lived PeerTube API token.
+13. Et cetera.

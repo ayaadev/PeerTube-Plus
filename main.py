@@ -14,7 +14,7 @@ try:
 except:
     import storageserverdummy as StorageServer
 
-cache = StorageServer.StorageServer("PeerTube-Plus", 24)
+cache = StorageServer.StorageServer("PeerTube-Plus", 1)
 
 import xbmcgui
 import xbmcplugin
@@ -222,6 +222,10 @@ def logout():
 
 # The selection menu of the addon
 def menu():
+    # If the user is back at the menu, set SEARCH_AGAIN to true so it prompts the user to search again
+    # Must be string
+    Addon().setSetting("search_again", "yes")
+
     # Check if the custom instance was set
     if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "" or CUSTOM_INSTANCE.startswith("http"):
         xbmcgui.Dialog().ok('Custom instance not specified', 'Please specify a PeerTube instance in the addon settings. It cannot start with "http". For example, write "instance.com" instead of "https://instance.com".')
@@ -232,6 +236,16 @@ def menu():
 
     # Set default listing here, independent of if user is authenticated
     listing = []
+
+    # Local Search
+    localSearch = xbmcgui.ListItem(label="Search")
+    localSearchURL = get_url(action='listing', mode='local_search')
+    listing.append((localSearchURL, localSearch, True))
+ 
+    # Global Search
+    globalSearch = xbmcgui.ListItem(label="Global Search")
+    globalSearchURL = get_url(action='listing', mode='global_search')
+    listing.append((globalSearchURL, globalSearch, True))
 
     # All Videos
     allVideos = xbmcgui.ListItem(label="All Videos")
@@ -352,7 +366,7 @@ def get_token():
          
             
 # Must take instance_url to invalidate cache if the user changes their instance
-def get_videos(instance_url, mode, page):
+def get_videos(instance_url, searchQuery, mode, page):
     
     start = page * 15
     queryParams = f"?start={start}&hasHLSFiles=true"
@@ -368,19 +382,26 @@ def get_videos(instance_url, mode, page):
 
         headers = {"Authorization": f"Bearer {access_token}"}
         request = requests.get(f"{API}/users/me/subscriptions/videos{queryParams}", headers=headers)
-    if mode == "local_videos":
+    elif mode == "local_videos":
         request = requests.get(f"{API}/videos{queryParams}&isLocal=true")
-    if mode == "trending":
+    elif mode == "trending":
         request = requests.get(f"{API}/videos{queryParams}&sort=-trending")
+    elif mode == "local_search":
+        print("Activated local search")
+        request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}")
+    elif mode == "global_search":
+        print("Activated global search")
+        request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}&searchTarget=search-index")
     else:
+        print("Activated default request")
         # Default request
         request = requests.get(f"{API}/videos{queryParams}")
     
     r = request.json()
     
     # If there were no results
-    if not r["data"]:
-        error = dialog.notification('Error', 'No results were found. Please try another feed.', xbmcgui.NOTIFICATION_ERROR)
+    if "data" not in r or not r["data"]:
+        error = xbmcgui.Dialog().notification('Error', 'No results were found. Please try another feed.', xbmcgui.NOTIFICATION_ERROR)
         raise StopExecution("No results were found", data=[])
 
     # Return the data
@@ -404,10 +425,37 @@ def generate_item_info(self, name, url, is_folder=True, thumbnail="",
     }
 
 def list_videos(mode, page):
-    # Cache results for 24 hours
+    dialog = xbmcgui.Dialog()
+       
+    SEARCH_AGAIN = Addon().getSetting("search_again")
+
+    if mode == "local_search" or mode == "global_search":
+        # Must separate this in an indent so it doesn't activate the else block below
+        if SEARCH_AGAIN == "yes":
+            Addon().setSetting("search_again", "no")
+            searchQuery = dialog.input('Search')
+            
+            # Set last search
+            Addon().setSetting("last_search", searchQuery)
+
+            # If the user cancelled the search
+            if searchQuery == "":
+                # Go back to menu
+                menu()
+                return
+        else:
+            # Get last search if we're not searching again
+            searchQuery = Addon().getSetting("last_search")
+
+    else:
+        searchQuery = ""
+
+    # Cache results for 1 hour
+    # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, mode, page)
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, searchQuery, mode, page)
+        #genre_info = get_videos(CUSTOM_INSTANCE, searchQuery, mode, page)
     except StopExecution:
         return
 
@@ -447,16 +495,20 @@ def list_videos(mode, page):
         
         try:
             # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
-            videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, video["id"])
+            # Pass mode here so it can know when it needs to check if results are local or not
+            # Pass host here, since the program only knows here
+            videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
+            #videoURL, description, tags = get_video(CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
         except StopExecution as e:
-            dialog = xbmcgui.Dialog()
-
             # Manually clear the get_videos cache so the error doesn't get cached in the results
             cache.delete("get_videos")
             
             # If the error message has specific details (message = "Error getting video") then return a more detailed response
             if e.message == "Error getting video":
                 error = dialog.ok("Error getting video", f"One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, and not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.\n\nError message: {e.data[0]}\nVideo Title: {video["name"]}\nVideo URL: {e.data[1]}")
+            if e.message == "No streamingPlaylists":
+                # Skip the bad global search result
+                continue
             else:
                 error = dialog.ok("An unexpected error occurred", f"Error message: {e.data[0]}")
             return
@@ -524,14 +576,22 @@ def list_videos(mode, page):
 
 # Must take instance_url to prevent results from other instances being used
 # Not used in the function itself
-def get_video(instance_url, id):
+def get_video(instance_url, mode, host, id):
     xbmc.log("id is %s" % id, xbmc.LOGDEBUG)
     API = window.getProperty('API')
     
     try:
-        request = requests.get(f"{API}/videos/{id}")
+        # If it's a global search, always change the API to be host
+        if mode == "global_search":
+            request = requests.get(f"https://{host}/api/v1/videos/{id}")
+        else:
+            request = requests.get(f"{API}/videos/{id}")
         r = request.json()
- 
+
+        # Apparently there can just be no streamingPlaylists array, so check for that and skip it if necessary
+        if not r["streamingPlaylists"]:
+            raise StopExecution("No streamingPlaylists", data=[])
+
         # There can be a "does_not_respect_follow_constraints" error here, so check the status code and handle the error gracefully
         # See: https://framacolibri.org/t/embed-error-cannot-get-this-video-regarding-follow-constraints/24390
         # See: https://docs.joinpeertube.org/api-rest-reference.html#section/Errors
