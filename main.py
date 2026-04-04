@@ -28,7 +28,6 @@ PROTOCOL = 'hls'
 MIME_TYPE = 'application/vnd.apple.mpegurl'
 
 window = xbmcgui.Window(10000)
-window.setProperty("API", f'https://{Addon().getSetting('custom_instance')}/api/v1')
 
 URL = sys.argv[0]
 HANDLE = int(sys.argv[1])
@@ -39,6 +38,7 @@ ADDON_ID = 'plugin.video.peertube-plus'
 USERDATA_PATH = xbmcvfs.translatePath(f'special://userdata/addon_data/{ADDON_ID}/')
 #CUSTOM_INSTANCE = xbmcplugin.getSetting(HANDLE,"custom_instance")
 CUSTOM_INSTANCE = Addon().getSetting('custom_instance')
+window.setProperty("API", f"https://{CUSTOM_INSTANCE}/api/v1")
 API = f"https://{CUSTOM_INSTANCE}/api/v1"
 
 # Create a custom exception for use in the functions
@@ -505,7 +505,10 @@ def list_videos(mode, page):
             
             # If the error message has specific details (message = "Error getting video") then return a more detailed response
             if e.message == "Error getting video":
-                error = dialog.ok("Error getting video", f"One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, and not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.\n\nError message: {e.data[0]}\nVideo Title: {video["name"]}\nVideo URL: {e.data[1]}")
+                errorMessage = e.data[0]
+                videoTitle = video["name"]
+                videoURL = e.data[1]
+                error = dialog.ok("Error getting video", f"One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, and not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.\n\nError message: {errorMessage}\nVideo Title: {videoTitle}\nVideo URL: {videoURL}")
             if e.message == "No streamingPlaylists":
                 # Skip the bad global search result
                 continue
@@ -639,6 +642,7 @@ def router(paramstring):
     params = dict(parse_qsl(paramstring))
     if not params:
         menu()
+        return
 
     elif params['action'] == 'listing':
         # Handle there being no page provided
