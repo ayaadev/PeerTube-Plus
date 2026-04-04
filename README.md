@@ -6,7 +6,7 @@
 
 ## Features
 - Ability to set a custom instance
-- Locally search the custom instance, or globally search with SepiaSearch!
+- Locally search the custom instance, or search across the entire PeerTube fediverse with SepiaSearch!
 - Different feeds (all videos, subscriptions, trending, local videos)
 - Account authentication
 - 2FA Support
