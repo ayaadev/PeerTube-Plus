@@ -19,6 +19,7 @@
 **Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new) with your feature request.**
 
 ## Requirements
+- If you would like to use the upgraded video player, you need version `22.3.6` or higher of the InputStream Adaptive addon. This is already available for Window and MacOS Kodi installs. However, they're still working on making it available on Linux. LibreELEC, a common Linux-based Kodi operating system, will likely see the new update after the 16th of April, 2026 (see (here)[https://github.com/LibreELEC/LibreELEC.tv/pull/11046] for details). Once you have the necessary version, you will automatically start using the upgraded video player.
 - Any PeerTube instance URL, even if you don't have an account. Please see the [configuration section below](https://github.com/ayaadev/PeerTube-Plus/tree/main#configuration).
 
 ## Installation

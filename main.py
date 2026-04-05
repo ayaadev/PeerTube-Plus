@@ -222,6 +222,7 @@ def logout():
 
 # The selection menu of the addon
 def menu():
+
     # If the user is back at the menu, set SEARCH_AGAIN to true so it prompts the user to search again
     # Must be string
     Addon().setSetting("search_again", "yes")
@@ -613,30 +614,42 @@ def get_video(instance_url, mode, host, id):
         raise StopExecution("An unexpected error occurred", data=[e])
 
 def play_video(path):
-    # BEGIN INPUT STREAM ADAPTIVE
-    STREAM_URL = path
-    
-    is_helper = inputstreamhelper.Helper(PROTOCOL)
-    if not is_helper.check_inputstream():
-        xbmcgui.Dialog().notification('Error', 'InputStream Adaptive not available', xbmcgui.NOTIFICATION_ERROR)
-        return
-    
-    list_item = xbmcgui.ListItem(path=STREAM_URL, offscreen=True)
-    list_item.setContentLookup(False)
-    list_item.setMimeType(MIME_TYPE)
+    # Check InputStream Adaptive version
+    addon = Addon('inputstream.adaptive')
+    version = addon.getAddonInfo('version')
 
-    # Set appropriate inputstream addon property based on Kodi version
-    kodi_version = int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
-    if kodi_version >= 19:
-        list_item.setProperty('inputstream', is_helper.inputstream_addon)
+    # If the user has a high enough InputStream adaptive version which supports separate audio, use it
+    if version >= "22.3.6":
+    
+        # BEGIN INPUT STREAM ADAPTIVE
+        STREAM_URL = path
+    
+        is_helper = inputstreamhelper.Helper(PROTOCOL)
+        if not is_helper.check_inputstream():
+            xbmcgui.Dialog().notification('Error', 'InputStream Adaptive not available', xbmcgui.NOTIFICATION_ERROR)
+            return
+        
+        list_item = xbmcgui.ListItem(path=STREAM_URL, offscreen=True)
+        list_item.setContentLookup(False)
+        list_item.setMimeType(MIME_TYPE)
+
+        # Set appropriate inputstream addon property based on Kodi version
+        kodi_version = int(xbmc.getInfoLabel('System.BuildVersion').split('.')[0])
+        if kodi_version >= 19:
+            list_item.setProperty('inputstream', is_helper.inputstream_addon)
+        else:
+            list_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
+
+        list_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
+
+        xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, list_item)
+
+        # END INPUTSTREAM ADAPTIVE
+       
     else:
-        list_item.setProperty('inputstreamaddon', is_helper.inputstream_addon)
-
-    list_item.setProperty('inputstream.adaptive.manifest_type', PROTOCOL)
-
-    xbmcplugin.setResolvedUrl(int(sys.argv[1]), True, list_item)
-
-    # END INPUTSTREAM ADAPTIVE
+        play_item = xbmcgui.ListItem(offscreen=True)
+        play_item.setPath(path)
+        xbmcplugin.setResolvedUrl(HANDLE, True, listitem=play_item)
 
 def router(paramstring):
     params = dict(parse_qsl(paramstring))
