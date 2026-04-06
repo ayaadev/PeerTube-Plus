@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon id="plugin.video.peertube-plus"
-version="0.1.3"
+version="1.0.0"
 name="PeerTube Plus"
 provider-name="AyaaDev">
 <requires>
@@ -15,7 +15,7 @@ provider-name="AyaaDev">
 </extension>
 <extension point="xbmc.addon.metadata">
   <summary lang="en_GB">PeerTube Plus - finally watch PeerTube on Kodi</summary>
-  <description lang="en_GB">A next-generation PeerTube addon for Kodi with features such as different feeds and account authentication with 2FA support!</description>
+  <description lang="en_GB">A next-generation PeerTube addon for Kodi with features such as different feeds, account authentication with 2FA support, and search!</description>
   <license>GPL-3.0-only</license>
   <source>https://github.com/ayaadev/PeerTube-Plus</source>
   <assets>
