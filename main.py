@@ -41,6 +41,8 @@ CUSTOM_INSTANCE = Addon().getSetting('custom_instance')
 window.setProperty("API", f"https://{CUSTOM_INSTANCE}/api/v1")
 API = f"https://{CUSTOM_INSTANCE}/api/v1"
 
+__localize__ = Addon().getLocalizedString
+
 # Create a custom exception for use in the functions
 class StopExecution(Exception):
     def __init__(self, message=None, data=None):
@@ -65,9 +67,9 @@ def login(mode, token):
 
     # If the user is logging in for the first time, i.e. not refreshing with a token
     if mode == "password":
-        username = dialog.input('Please enter your username')
+        username = dialog.input(__localize__(30001))
         # We can't use the password input because it hashes the value
-        password = dialog.input('Please enter your password', option=xbmcgui.ALPHANUM_HIDE_INPUT)
+        password = dialog.input(__localize__(30002), option=xbmcgui.ALPHANUM_HIDE_INPUT)
 
     url = f"{API}/users/token"
 
@@ -83,19 +85,19 @@ def login(mode, token):
     # If the user's password is longer than 72 characters
     if status == 400:
         if credentials["code"] == "invalid_client":
-            error = dialog.ok('Error logging in', "There was a mismatch between client details. Please try logging in again.")
+            error = dialog.ok(__localize__(30003), __localize__(30004))
 
         if credentials["code"] == "invalid_grant":
-            error = dialog.ok('Error logging in', "Invalid credentials.")
+            error = dialog.ok(__localize__(30003), __localize__(30005))
 
         if "72 bytes" in credentials["detail"]:
-            error = dialog.ok('Error logging in', "Due to PeerTube's API limitations, only passwords under 72 characters can be accepted. Please consider keeping your password under 72 characters. Sorry for the inconvenience.")
+            error = dialog.ok(__localize__(30003), __localize__(30006))
 
         return
     
     elif status == 401:
         if credentials["code"] == "missing_two_factor":
-            twoFactorCode = dialog.input('Please enter your two factor authentication code.')
+            twoFactorCode = dialog.input(__localize__(30007))
             headers = {"x-peertube-otp": twoFactorCode}
             r = requests.post(url, data=payload, headers=headers)
             status = r.status_code
@@ -103,7 +105,7 @@ def login(mode, token):
             #error = dialog.ok('Error logging in', "Your account requires two factor authentication which is unsupported at this time. Sorry for the inconvenience.")
 
         elif credentials["code"] == "invalid_token":
-            error = dialog.ok('Session expired', "Your session as expired. Please login again.")
+            error = dialog.ok(__localize__(30008), __localize__(30009))
 
             # The other try block handles a file not found error, so we don't need to check here
             with xbmcvfs.File(DATA_PATH, 'w') as file:
@@ -119,7 +121,7 @@ def login(mode, token):
 
             return
         else:
-            error = dialog.ok('Error logging in', "There was an unspecified authentication failure.")
+            error = dialog.ok(__localize__(30003), __localize__(30010))
             return
         
     access_token = credentials["access_token"]
@@ -131,7 +133,7 @@ def login(mode, token):
         try:
             xbmcvfs.mkdirs(USERDATA_PATH)
         except:
-            error = dialog.notification('Error', 'Could not create userdata directory to store credentials.', xbmcgui.NOTIFICATION_ERROR)
+            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
         
     CREDENTIALS_PATH = USERDATA_PATH + credentialsFile
     DATA_PATH = USERDATA_PATH + dataFile
@@ -161,14 +163,14 @@ def login(mode, token):
             file.write(json.dumps(data, ensure_ascii=False, indent=4))
     # General catch statement
     except Exception:
-        error = dialog.notification('Error', 'Could not write the credentials to file', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification(__localize__(30011), __localize__(30013), xbmcgui.NOTIFICATION_ERROR)
         traceback.print_exc()
 
 # Logout
 def logout():
     dialog = xbmcgui.Dialog()
     if not xbmcvfs.exists(USERDATA_PATH):
-        error = dialog.notification('Error', 'Please login to continue this action.', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification(__localize__(30011), __localize__(30014), xbmcgui.NOTIFICATION_ERROR)
         return
 
     CREDENTIALS_PATH = USERDATA_PATH + "credentials.json"
@@ -191,7 +193,7 @@ def logout():
         request = requests.post(f"{API}/users/revoke-token", headers=headers)
 
         if request.status_code == 200:
-            notification = dialog.notification('Success', 'You have been logged out.')
+            notification = dialog.notification(__localize__(30015), __localize__(30016))
             
             # Change the data file to be unauthenticated
             with xbmcvfs.File(DATA_PATH, 'w') as file:
@@ -210,7 +212,7 @@ def logout():
             response = request.json()
             detail = response["detail"]
             code = response["code"]
-            error = dialog.notification(f'HTTP Error {request.status_code}', f'Error message: {detail}. Code: {code}')
+            error = dialog.notification(__localize__(30017).format(request.status_code), __localize__(30018).format(detail, code))
     
     except json.JSONDecodeError:
         # For some reason this often happens when logging out, but the error doesn't break anything so just pass
@@ -218,7 +220,7 @@ def logout():
 
     except Exception as e:
         traceback.print_exc()
-        error = dialog.notification('Error', f'An unexpected error occurred. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification(__localize__(30011), __localize__(30019).format(e), xbmcgui.NOTIFICATION_ERROR)
 
 # The selection menu of the addon
 def menu():
@@ -229,7 +231,7 @@ def menu():
 
     # Check if the custom instance was set
     if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "" or CUSTOM_INSTANCE.startswith("http"):
-        xbmcgui.Dialog().ok('Custom instance not specified', 'Please specify a PeerTube instance in the addon settings. It cannot start with "http". For example, write "instance.com" instead of "https://instance.com".')
+        xbmcgui.Dialog().ok(__localize__(30020), __localize__(30021))
         return
 
     xbmcplugin.setPluginCategory(HANDLE, 'Menu')
@@ -239,27 +241,27 @@ def menu():
     listing = []
 
     # Local Search
-    localSearch = xbmcgui.ListItem(label="Search")
+    localSearch = xbmcgui.ListItem(label=__localize__(30022))
     localSearchURL = get_url(action='listing', mode='local_search')
     listing.append((localSearchURL, localSearch, True))
  
     # Global Search
-    globalSearch = xbmcgui.ListItem(label="Global Search")
+    globalSearch = xbmcgui.ListItem(label=__localize__(30023))
     globalSearchURL = get_url(action='listing', mode='global_search')
     listing.append((globalSearchURL, globalSearch, True))
 
     # All Videos
-    allVideos = xbmcgui.ListItem(label="All Videos")
+    allVideos = xbmcgui.ListItem(label=__localize__(30024))
     allVideosURL = get_url(action='listing', mode='all_videos')
     listing.append((allVideosURL, allVideos, True))
     
     # Trending
-    trending = xbmcgui.ListItem(label="Trending")
+    trending = xbmcgui.ListItem(label=__localize__(30025))
     trendingURL = get_url(action='listing', mode='trending')
     listing.append((trendingURL, trending, True))
 
     # Local Videos
-    localVideos = xbmcgui.ListItem(label="Local Videos")
+    localVideos = xbmcgui.ListItem(label=__localize__(30026))
     localVideosURL = get_url(action='listing', mode='local_videos')
     listing.append((localVideosURL, localVideos, True))
 
@@ -272,13 +274,13 @@ def menu():
             if data["authenticated"] == True:
                 is_folder = True
                 
-                subscriptions = xbmcgui.ListItem(label="Subscriptions")
+                subscriptions = xbmcgui.ListItem(label=__localize__(30027))
                 subscriptionsURL = get_url(action='listing', mode='subscriptions')
                 
                 # Append subscriptions to listing variable
                 listing.append((subscriptionsURL, subscriptions, is_folder))
 
-                logout = xbmcgui.ListItem(label="Logout")
+                logout = xbmcgui.ListItem(label=__localize__(30028))
                 logoutURL = get_url(action='logout')
 
                 # Append logout to listing variable
@@ -290,7 +292,7 @@ def menu():
                 
                 # LOGIN
 
-                login = xbmcgui.ListItem(label="Login")
+                login = xbmcgui.ListItem(label=__localize__(30029))
                 loginURL = get_url(action='login', mode='password', token='0')
                 
                 listing.append((loginURL, login, is_folder))
@@ -301,7 +303,7 @@ def menu():
 
         # LOGIN
 
-        login = xbmcgui.ListItem(label="Login")
+        login = xbmcgui.ListItem(label=__localize__(30029))
         loginURL = get_url(action='login', mode='password', token='0')
         
         listing.append((loginURL, login, is_folder))
@@ -315,7 +317,7 @@ def menu():
 def get_token():
     dialog = xbmcgui.Dialog()
     if not xbmcvfs.exists(USERDATA_PATH):
-        error = dialog.notification('Error', 'Please login to continue this action.', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification(__localize__(30011), __localize__(30014), xbmcgui.NOTIFICATION_ERROR)
         return False
     
     CREDENTIALS_PATH = USERDATA_PATH + "credentials.json"
@@ -331,7 +333,7 @@ def get_token():
             
             # We need to check if the program has invalidated the credentials, so check the authentication status
             if not data["authenticated"]:
-                error = dialog.notification('Error', 'Please login to continue this action.', xbmcgui.NOTIFICATION_ERROR)
+                error = dialog.notification(__localize__(30011), __localize__(30014), xbmcgui.NOTIFICATION_ERROR)
                 return False
         
         # Since the user should be authenticated, get the credentials
@@ -358,10 +360,10 @@ def get_token():
         elif request.status_code == 200:
             return access_token
         else:
-            error = dialog.notification('Error', 'An unexpected error occurred while performing an authenticated action.', xbmcgui.NOTIFICATION_ERROR)
+            error = dialog.notification(__localize__(30011), __localize__(30030), xbmcgui.NOTIFICATION_ERROR)
             return False
     except Exception as e:
-        error = dialog.notification('Error', f'An unexpected error occurred while performing an authenticated action. Error message: {e}', xbmcgui.NOTIFICATION_ERROR)
+        error = dialog.notification(__localize__(30011), __localize__(30031).format(e), xbmcgui.NOTIFICATION_ERROR)
         traceback.print_exc()
         return False
          
@@ -388,13 +390,10 @@ def get_videos(instance_url, searchQuery, mode, page):
     elif mode == "trending":
         request = requests.get(f"{API}/videos{queryParams}&sort=-trending")
     elif mode == "local_search":
-        print("Activated local search")
         request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}")
     elif mode == "global_search":
-        print("Activated global search")
         request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}&searchTarget=search-index")
     else:
-        print("Activated default request")
         # Default request
         request = requests.get(f"{API}/videos{queryParams}")
     
@@ -402,7 +401,7 @@ def get_videos(instance_url, searchQuery, mode, page):
     
     # If there were no results
     if "data" not in r or not r["data"]:
-        error = xbmcgui.Dialog().notification('Error', 'No results were found. Please try another feed.', xbmcgui.NOTIFICATION_ERROR)
+        error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
         raise StopExecution("No results were found", data=[])
 
     # Return the data
@@ -509,12 +508,12 @@ def list_videos(mode, page):
                 errorMessage = e.data[0]
                 videoTitle = video["name"]
                 videoURL = e.data[1]
-                error = dialog.ok("Error getting video", f"One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, and not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.\n\nError message: {errorMessage}\nVideo Title: {videoTitle}\nVideo URL: {videoURL}")
+                error = dialog.ok(__localize__(30033), __localize__(30034).format(errorMessage, videoTitle, videoURL))
             if e.message == "No streamingPlaylists":
                 # Skip the bad global search result
                 continue
             else:
-                error = dialog.ok("An unexpected error occurred", f"Error message: {e.data[0]}")
+                error = dialog.ok(__localize__(30011), __localize__(30019).format(e.data[0]))
             return
         
         # NOTE
@@ -533,7 +532,9 @@ def list_videos(mode, page):
         info_tag.setPremiered(publishedDate)
         info_tag.setVotes(likes)
         info_tag.setYear(publishedYear)
-        info_tag.setTagLine(f"[COLOR green]Views: {views}[/COLOR]\n[COLOR red]Likes: {likes}[/COLOR]")
+        viewText = __localize__(30035).format(views)
+        likeText = __localize__(30036).format(likes)
+        info_tag.setTagLine(f"[COLOR green]{viewText}[/COLOR]\n[COLOR red]{likeText}[/COLOR]")
         
         # This is deprecated
         list_item.setInfo('video', {
@@ -563,7 +564,7 @@ def list_videos(mode, page):
         # Add a list item to load more
         # Add two to the page number so it looks like the page starts at 1
         # Improves UX
-        refresh_item = xbmcgui.ListItem(label=f"Load More (page {page+2})")
+        refresh_item = xbmcgui.ListItem(label=__localize__(30037).format(page+2))
     
         # Use actually correct page number behind the scenes (page+1)
         next_url = get_url(action='listing', mode=mode, page=page+1)
@@ -626,7 +627,7 @@ def play_video(path):
     
         is_helper = inputstreamhelper.Helper(PROTOCOL)
         if not is_helper.check_inputstream():
-            xbmcgui.Dialog().notification('Error', 'InputStream Adaptive not available', xbmcgui.NOTIFICATION_ERROR)
+            xbmcgui.Dialog().notification(__localize__(30011), __localize__(30038), xbmcgui.NOTIFICATION_ERROR)
             return
         
         list_item = xbmcgui.ListItem(path=STREAM_URL, offscreen=True)
