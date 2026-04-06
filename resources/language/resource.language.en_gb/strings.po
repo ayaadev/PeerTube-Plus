@@ -111,6 +111,8 @@ msgctxt "#30021"
 msgid "Please specify a PeerTube instance in the addon settings. It cannot start with 'http'. For example, use 'instance.com' instead of 'https://instance.com'."
 msgstr ""
 
+# Menu
+
 msgctxt "#30022"
 msgid "Search"
 msgstr ""
@@ -143,6 +145,8 @@ msgctxt "#30029"
 msgid "Login"
 msgstr ""
 
+# Dialog
+
 msgctxt "#30030"
 msgid "An unexpected error occurred while performing an authenticated action."
 msgstr ""
@@ -163,6 +167,8 @@ msgctxt "#30034"
 msgid "One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.[CR]Error message: {0}[CR]Video title: {1}[CR]Video URL: {2}"
 msgstr ""
 
+# Video stats
+
 msgctxt "#30035"
 msgid "Views: {0}"
 msgstr ""
@@ -174,6 +180,8 @@ msgstr ""
 msgctxt "#30037"
 msgid "Page {0}"
 msgstr ""
+
+# Dialog
 
 msgctxt "#30038"
 msgid "InputStream Adaptive is not available."
