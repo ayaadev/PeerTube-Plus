@@ -81,7 +81,7 @@ The instance "peertube.tech" is **just an example** for the purpose of this guid
 When you first open the addon, you will see the following menu:
 <img width="1843" height="497" alt="image" src="https://github.com/user-attachments/assets/de650b47-ad92-4c25-adfe-a0f191eb04b6" />
 
-You are able to access any feed (e.g. "All Videos") without logging in.
+You are able to access any feed that is shown while you are not logged in (e.g. "All Videos") without a PeerTube account.
 
 If you would like to access your subscriptions feed, click "Login". Input your username, password and two-factor authentication code (if you have 2FA enabled).
 
@@ -119,4 +119,5 @@ This project was inspired by and modified from Haui1112's [plugin.video.pt](http
 10. Added authentication, so users can perform authenticated actions (e.g. subscriptions feed).
 11. Implemented two-factor support for authentication.
 12. Implemented automatic renewal of short-lived PeerTube API token.
-13. Et cetera.
+13. Localized all dialog that the user sees.
+14. Et cetera.
