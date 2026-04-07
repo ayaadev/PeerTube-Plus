@@ -17,7 +17,7 @@
 - Filters for global search (SepiaSearch) 
 - Torrent PeerTube videos
 
-**Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new) with your feature request.**
+**Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new?template=%E2%9C%A8-feature-request.md) with your feature request.**
 
 ## Requirements
 - If you would like to use the **upgraded video player** (spoiler alert: you do!), you need version `22.3.6` or higher of the InputStream Adaptive addon. This is already available for Windows and MacOS Kodi installs. However, they're still working on making it available on Linux. If you would like, you may manually build and install the latest version of InputStream Adaptive [here](https://github.com/xbmc/inputstream.adaptive/wiki/How-to-build). Once you have the necessary version, you will automatically start using the upgraded video player.
