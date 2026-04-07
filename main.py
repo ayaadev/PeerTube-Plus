@@ -138,17 +138,20 @@ def login(mode, token):
     CREDENTIALS_PATH = USERDATA_PATH + credentialsFile
     DATA_PATH = USERDATA_PATH + dataFile
 
+    data = {}
+
     try:
         with xbmcvfs.File(CREDENTIALS_PATH, 'w') as file:
             file.write(json.dumps(credentials, ensure_ascii=False, indent=4))
-        with xbmcvfs.File(DATA_PATH, 'w') as file:
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
             # Read the data and load it to JSON
             content = file.read()
             data = json.loads(content)
 
             # Change / add the authenticated key to true
             data["authenticated"] = True 
-                
+        
+        with xbmcvfs.File(DATA_PATH, 'w') as file:
             # Save the file
             file.write(json.dumps(data, ensure_ascii=False, indent=4))
 
@@ -176,6 +179,8 @@ def logout():
     CREDENTIALS_PATH = USERDATA_PATH + "credentials.json"
     DATA_PATH = USERDATA_PATH + "data.json"
 
+    data = {}
+
     access_token = None
     
     try:
@@ -196,12 +201,14 @@ def logout():
             notification = dialog.notification(__localize__(30015), __localize__(30016))
             
             # Change the data file to be unauthenticated
-            with xbmcvfs.File(DATA_PATH, 'w') as file:
+            with xbmcvfs.File(DATA_PATH, 'r') as file:
                 content = file.read()
                 data = json.loads(content)
 
                 data["authenticated"] = False
-                
+            
+            # Write to file
+            with xbmcvfs.File(DATA_PATH, 'w') as file:
                 file.write(json.dumps(data, ensure_ascii=False, indent=4))
 
             # Only delete the file if the credentials were revoked at the server.
@@ -222,12 +229,152 @@ def logout():
         traceback.print_exc()
         error = dialog.notification(__localize__(30011), __localize__(30019).format(e), xbmcgui.NOTIFICATION_ERROR)
 
+# Delete a search
+def delete_search(mode, search):
+    dataFile = "data.json"
+    if not xbmcvfs.exists(USERDATA_PATH):
+        try:
+            xbmcvfs.mkdirs(USERDATA_PATH)
+        except:
+            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
+        
+    DATA_PATH = USERDATA_PATH + dataFile
+
+    data = {}
+
+    try:
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
+            # Read the data and load it to JSON
+            content = file.read()
+            data = json.loads(content)
+
+            # Remove search
+            data[mode].remove(search)
+
+        with xbmcvfs.File(DATA_PATH, 'w') as file:
+            # Save the file
+            file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+        # Return to menu
+        xbmc.executebuiltin("Container.Refresh")
+        return
+    # If the file doesn't exist
+    except json.JSONDecodeError:
+        # This shouldn't be possible so pass
+        pass
+    # General catch statement
+    except Exception:
+        error = dialog.notification(__localize__(30011), __localize__(30013), xbmcgui.NOTIFICATION_ERROR)
+        traceback.print_exc()
+
+
+# Create a new search
+def new_search(mode):
+    # Get search
+    dialog = xbmcgui.Dialog()
+    searchQuery = dialog.input(__localize__(30022))
+
+    dataFile = "data.json"
+    if not xbmcvfs.exists(USERDATA_PATH):
+        try:
+            xbmcvfs.mkdirs(USERDATA_PATH)
+        except:
+            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
+        
+    DATA_PATH = USERDATA_PATH + dataFile
+
+    data = {}
+
+    try:
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
+            # Read the data and load it to JSON
+            content = file.read()
+            data = json.loads(content)
+
+            if not mode in data:
+                data[mode] = [searchQuery]
+            else:
+                # Prepend to search
+                data[mode].insert(0, searchQuery)
+                data[mode] = data[mode][:15]
+
+        with xbmcvfs.File(DATA_PATH, 'w') as file:
+            # Save the file
+            file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+        # Return to menu
+        xbmc.executebuiltin("Container.Refresh")
+        return
+    # If the file doesn't exist
+    except json.JSONDecodeError:  
+        traceback.print_exc()
+        xbmc.log("In JSON Except")
+        # Open the file
+        with xbmcvfs.File(DATA_PATH, 'w') as file:
+            # Create the file and add history key
+            data[mode] = [searchQuery]
+            file.write(json.dumps(data, ensure_ascii=False, indent=4))
+    # General catch statement
+    except Exception:
+        error = dialog.notification(__localize__(30011), __localize__(30013), xbmcgui.NOTIFICATION_ERROR)
+        traceback.print_exc()
+
+
+# Show search menu
+def search_menu(mode):
+    dialog = xbmcgui.Dialog()
+    
+    listing = []
+
+    newSearch = xbmcgui.ListItem(label=__localize__(30039))
+    newSearchURL = get_url(action='new_search', mode=mode)
+    listing.append((newSearchURL, newSearch, True))
+
+    dataFile = "data.json"
+    if not xbmcvfs.exists(USERDATA_PATH):
+        try:
+            xbmcvfs.mkdirs(USERDATA_PATH)
+        except:
+            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
+        
+    DATA_PATH = USERDATA_PATH + dataFile
+
+    try:
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
+            # Read the data and load it to JSON
+            content = file.read()
+            data = json.loads(content)
+
+            for item in data[mode]:
+                # Item = search query
+                searchItem = xbmcgui.ListItem(label=item)
+                searchItemURL = get_url(action='listing', mode=mode, search=item)
+                
+                # Context menu
+                query = get_url(action='delete_search', mode=mode, search=item)
+                command = f"RunPlugin({query})"
+                searchItem.addContextMenuItems([(__localize__(30041), command)])
+
+                listing.append((searchItemURL, searchItem, True))
+    
+    # If there is no history yet, ignore
+    except KeyError:
+        pass
+    # If the file doesn't exist
+    except (json.JSONDecodeError, FileNotFoundError):
+        pass
+    # General catch statement
+    except Exception:
+        error = dialog.notification(__localize__(30011), __localize__(30040), xbmcgui.NOTIFICATION_ERROR)
+        traceback.print_exc()
+
+    # Batch add once
+    xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
+
+    xbmcplugin.endOfDirectory(HANDLE)
+
 # The selection menu of the addon
 def menu():
-
-    # If the user is back at the menu, set SEARCH_AGAIN to true so it prompts the user to search again
-    # Must be string
-    Addon().setSetting("search_again", "yes")
 
     # Check if the custom instance was set
     if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "" or CUSTOM_INSTANCE.startswith("http"):
@@ -242,12 +389,12 @@ def menu():
 
     # Local Search
     localSearch = xbmcgui.ListItem(label=__localize__(30022))
-    localSearchURL = get_url(action='listing', mode='local_search')
+    localSearchURL = get_url(action='search', mode='local_search')
     listing.append((localSearchURL, localSearch, True))
  
     # Global Search
     globalSearch = xbmcgui.ListItem(label=__localize__(30023))
-    globalSearchURL = get_url(action='listing', mode='global_search')
+    globalSearchURL = get_url(action='search', mode='global_search')
     listing.append((globalSearchURL, globalSearch, True))
 
     # All Videos
@@ -372,7 +519,7 @@ def get_token():
 def get_videos(instance_url, searchQuery, mode, page):
     
     start = page * 15
-    queryParams = f"?start={start}&hasHLSFiles=true"
+    queryParams = f"?start={start}&count=15&hasHLSFiles=true"
 
     # Only try to get the access token if the user is performing an authenticated request
     if mode == "subscriptions":
@@ -392,7 +539,7 @@ def get_videos(instance_url, searchQuery, mode, page):
     elif mode == "local_search":
         request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}")
     elif mode == "global_search":
-        request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}&searchTarget=search-index")
+        request = requests.get(f"https://sepiasearch.org/api/v1/search/videos{queryParams}&search={searchQuery}")
     else:
         # Default request
         request = requests.get(f"{API}/videos{queryParams}")
@@ -424,37 +571,14 @@ def generate_item_info(self, name, url, is_folder=True, thumbnail="",
         }
     }
 
-def list_videos(mode, page):
+def list_videos(mode, search, page):
     dialog = xbmcgui.Dialog()
        
-    SEARCH_AGAIN = Addon().getSetting("search_again")
-
-    if mode == "local_search" or mode == "global_search":
-        # Must separate this in an indent so it doesn't activate the else block below
-        if SEARCH_AGAIN == "yes":
-            Addon().setSetting("search_again", "no")
-            searchQuery = dialog.input('Search')
-            
-            # Set last search
-            Addon().setSetting("last_search", searchQuery)
-
-            # If the user cancelled the search
-            if searchQuery == "":
-                # Go back to menu
-                menu()
-                return
-        else:
-            # Get last search if we're not searching again
-            searchQuery = Addon().getSetting("last_search")
-
-    else:
-        searchQuery = ""
-
     # Cache results for 1 hour
     # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, searchQuery, mode, page)
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
         #genre_info = get_videos(CUSTOM_INSTANCE, searchQuery, mode, page)
     except StopExecution:
         return
@@ -472,7 +596,7 @@ def list_videos(mode, page):
     listing = []
 
     for video in videos:
-        print(f'Title of video being processed: {video["name"]}')
+        xbmc.log(f'Title of video being processed: {video["name"]}')
         list_item = xbmcgui.ListItem(label=video['name'])
         info_tag = list_item.getVideoInfoTag()
 
@@ -482,6 +606,10 @@ def list_videos(mode, page):
         # If there is no avatar
         try:
             channelAvatar = video["channel"]["avatars"][1]["fileUrl"]
+            actor = xbmc.Actor(name=channelName, thumbnail=channelAvatar)
+        except KeyError:
+            # If there was a keyerror, it likely means the API responded with "url" instead of "fileUrl" for the avatar image
+            channelAvatar = video["channel"]["avatars"][1]["url"]
             actor = xbmc.Actor(name=channelName, thumbnail=channelAvatar)
         except IndexError:
             pass
@@ -593,9 +721,14 @@ def get_video(instance_url, mode, host, id):
             request = requests.get(f"{API}/videos/{id}")
         r = request.json()
 
-        # Apparently there can just be no streamingPlaylists array, so check for that and skip it if necessary
+        # There can be no streamingPlaylists array, so check for that and try returning the fileUrl instead
         if not r["streamingPlaylists"]:
-            raise StopExecution("No streamingPlaylists", data=[])
+            # If there are no files, skip it
+            if not r["files"]:
+                raise StopExecution("No streamingPlaylists", data=[])
+            
+            # If there were files, return
+            return r["files"][0]["fileUrl"], r["description"], r["tags"]
 
         # There can be a "does_not_respect_follow_constraints" error here, so check the status code and handle the error gracefully
         # See: https://framacolibri.org/t/embed-error-cannot-get-this-video-regarding-follow-constraints/24390
@@ -620,7 +753,8 @@ def play_video(path):
     version = addon.getAddonInfo('version')
 
     # If the user has a high enough InputStream adaptive version which supports separate audio, use it
-    if version >= "22.3.6":
+    # Must also be a m3u8 file. If path ends in .mp4 it must go to the else block.
+    if version >= "22.3.6" and path.endswith(".m3u8"):
     
         # BEGIN INPUT STREAM ADAPTIVE
         STREAM_URL = path
@@ -665,13 +799,25 @@ def router(paramstring):
         except:
             page = 0
 
-        list_videos(params['mode'], page)
+        # Handle no search being provided
+        try:
+            searchQuery = params.get('search', 1)
+        except:
+            searchQuery = ""
+
+        list_videos(params['mode'], searchQuery, page)
     elif params['action'] == 'play':
         play_video(params['video'])
     elif params['action'] == 'login':
         login(params['mode'], params['token'])
     elif params['action'] == 'logout':
         logout()
+    elif params['action'] == 'search':
+        search_menu(params['mode'])
+    elif params['action'] == 'new_search':
+        new_search(params['mode'])
+    elif params['action'] == 'delete_search':
+        delete_search(params['mode'], params['search'])
     else:
         raise ValueError(f'Invalid paramstring: {paramstring}!')
 
