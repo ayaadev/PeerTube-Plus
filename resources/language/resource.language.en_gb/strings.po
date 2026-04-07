@@ -72,7 +72,7 @@ msgid "Error"
 msgstr ""
 
 msgctxt "#30012"
-msgid "Could not create userdata directory to store credentials."
+msgid "Could not create userdata directory to store data."
 msgstr ""
 
 msgctxt "#30013"
@@ -185,6 +185,20 @@ msgstr ""
 
 msgctxt "#30038"
 msgid "InputStream Adaptive is not available."
+msgstr ""
+
+# Menu
+msgctxt "#30039"
+msgid "New Search"
+msgstr ""
+
+# Dialog
+msgctxt "#30040"
+msgid "Could not access the search history."
+msgstr ""
+
+msgctxt "#30041"
+msgid "Delete search"
 msgstr ""
 
 #Settings
