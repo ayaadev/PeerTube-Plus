@@ -14,6 +14,7 @@
 - Pagination on video feeds which increases responsiveness
 
 ## Planned features
+- Filters for global search (SepiaSearch) 
 - Torrent PeerTube videos
 
 **Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new) with your feature request.**
