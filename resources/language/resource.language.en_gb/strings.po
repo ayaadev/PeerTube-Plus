@@ -189,7 +189,7 @@ msgstr ""
 
 # Menu
 msgctxt "#30039"
-msgid "New Search"
+msgid "[B]New Search[/B]"
 msgstr ""
 
 # Dialog
