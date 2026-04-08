@@ -55,6 +55,17 @@ def get_url(**kwargs):
 
 # Allow the user to login
 def login(mode, token):
+    credentialsFile = "credentials.json"
+    dataFile = "data.json"
+    if not xbmcvfs.exists(USERDATA_PATH):
+        try:
+            xbmcvfs.mkdirs(USERDATA_PATH)
+        except:
+            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
+        
+    CREDENTIALS_PATH = USERDATA_PATH + credentialsFile
+    DATA_PATH = USERDATA_PATH + dataFile
+
     # Check if the user is already logged in
 
     request = requests.get(f"{API}/oauth-clients/local")
@@ -87,8 +98,34 @@ def login(mode, token):
         if credentials["code"] == "invalid_client":
             error = dialog.ok(__localize__(30003), __localize__(30004))
 
+            # The other try block handles a file not found error, so we don't need to check here
+            with xbmcvfs.File(DATA_PATH, 'r') as file:
+                # Read the data and load it to JSON
+                content = file.read()
+                data = json.loads(content)
+
+                # Change the authenticated key to false
+                data["authenticated"] = False
+                
+            with xbmcvfs.File(DATA_PATH, 'w') as file:
+                # Save the file
+                file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
         if credentials["code"] == "invalid_grant":
             error = dialog.ok(__localize__(30003), __localize__(30005))
+            
+            # The other try block handles a file not found error, so we don't need to check here
+            with xbmcvfs.File(DATA_PATH, 'r') as file:
+                # Read the data and load it to JSON
+                content = file.read()
+                data = json.loads(content)
+
+                # Change the authenticated key to false
+                data["authenticated"] = False
+                
+            with xbmcvfs.File(DATA_PATH, 'w') as file:
+                # Save the file
+                file.write(json.dumps(data, ensure_ascii=False, indent=4))
 
         if "72 bytes" in credentials["detail"]:
             error = dialog.ok(__localize__(30003), __localize__(30006))
@@ -105,10 +142,10 @@ def login(mode, token):
             #error = dialog.ok('Error logging in', "Your account requires two factor authentication which is unsupported at this time. Sorry for the inconvenience.")
 
         elif credentials["code"] == "invalid_token":
-            error = dialog.ok(__localize__(30008), __localize__(30009))
+            data = {}
 
             # The other try block handles a file not found error, so we don't need to check here
-            with xbmcvfs.File(DATA_PATH, 'w') as file:
+            with xbmcvfs.File(DATA_PATH, 'r') as file:
                 # Read the data and load it to JSON
                 content = file.read()
                 data = json.loads(content)
@@ -116,9 +153,12 @@ def login(mode, token):
                 # Change the authenticated key to false
                 data["authenticated"] = False
                 
+            with xbmcvfs.File(DATA_PATH, 'w') as file:
                 # Save the file
                 file.write(json.dumps(data, ensure_ascii=False, indent=4))
 
+            error = dialog.ok(__localize__(30008), __localize__(30009))
+            
             return
         else:
             error = dialog.ok(__localize__(30003), __localize__(30010))
@@ -126,17 +166,6 @@ def login(mode, token):
         
     access_token = credentials["access_token"]
     refresh_token = credentials["refresh_token"]
-
-    credentialsFile = "credentials.json"
-    dataFile = "data.json"
-    if not xbmcvfs.exists(USERDATA_PATH):
-        try:
-            xbmcvfs.mkdirs(USERDATA_PATH)
-        except:
-            error = dialog.notification(__localize__(30011), __localize__(30012), xbmcgui.NOTIFICATION_ERROR)
-        
-    CREDENTIALS_PATH = USERDATA_PATH + credentialsFile
-    DATA_PATH = USERDATA_PATH + dataFile
 
     data = {}
 
@@ -219,8 +248,19 @@ def logout():
             response = request.json()
             detail = response["detail"]
             code = response["code"]
-            error = dialog.notification(__localize__(30017).format(request.status_code), __localize__(30018).format(detail, code))
-    
+            error = dialog.notification(__localize__(30017).format(request.status_code), __localize__(30018).format(detail, code), xbmcgui.NOTIFICATION_ERROR)
+   
+            # Change the data file to be unauthenticated
+            with xbmcvfs.File(DATA_PATH, 'r') as file:
+                content = file.read()
+                data = json.loads(content)
+
+                data["authenticated"] = False
+            
+            # Write to file
+            with xbmcvfs.File(DATA_PATH, 'w') as file:
+                file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
     except json.JSONDecodeError:
         # For some reason this often happens when logging out, but the error doesn't break anything so just pass
         pass
@@ -497,7 +537,12 @@ def get_token():
             
             # Try to get a new access token with the refresh token
             refresh_token = credentials["refresh_token"]
-            successful, token = login("token", refresh_token)
+            
+            # If the login function returned an error, it will cause a TypeError
+            try:
+                successful, token = login("token", refresh_token)
+            except TypeError:
+                successful = False
 
             if successful == True:
                 return token
@@ -578,8 +623,9 @@ def list_videos(mode, search, page):
     # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
-        #genre_info = get_videos(CUSTOM_INSTANCE, searchQuery, mode, page)
+        # TODO
+        #genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
+        genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page)
     except StopExecution:
         return
 
@@ -625,8 +671,9 @@ def list_videos(mode, search, page):
             # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
             # Pass mode here so it can know when it needs to check if results are local or not
             # Pass host here, since the program only knows here
-            videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
-            #videoURL, description, tags = get_video(CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
+            # TODO
+            #videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
+            videoURL, description, tags = get_video(CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
         except StopExecution as e:
             # Manually clear the get_videos cache so the error doesn't get cached in the results
             cache.delete("get_videos")
@@ -756,13 +803,21 @@ def compare_versions(v1, v2):
 def play_video(path):
     # Get helper 
     is_helper = inputstreamhelper.Helper(PROTOCOL)
-    
+
+    # Default version if InputStream adaptive isn't found
+    version = "0.0.0"
+   
+    showInputStreamAdaptive = Addon().getSetting("show_inputstream_adaptive")
+
     # Check InputStream Adaptive version
-    if is_helper.check_inputstream():
-        addon = Addon('inputstream.adaptive')
-        version = addon.getAddonInfo('version')
-    else:
-        version = "0.0.0"
+    # We're only prompting to install InputStream Adaptive once, because they can still use the fallback video player
+    if showInputStreamAdaptive == "True":
+        if is_helper.check_inputstream():
+            addon = Addon('inputstream.adaptive')
+            version = addon.getAddonInfo('version')
+        else:
+            # Don't show the popup again
+            Addon().setSetting("show_inputstream_adaptive", "False")
 
     # If the user has a high enough InputStream adaptive version which supports separate audio, use it
     # Must also be a m3u8 file. If path ends in .mp4 it must go to the else block.
