@@ -754,9 +754,18 @@ def compare_versions(v1, v2):
     return version1 > version2
 
 def play_video(path):
+    # Get helper 
+    is_helper = inputstreamhelper.Helper(PROTOCOL)
+    
     # Check InputStream Adaptive version
-    addon = Addon('inputstream.adaptive')
-    version = addon.getAddonInfo('version')
+    try:
+        addon = Addon('inputstream.adaptive')
+        version = addon.getAddonInfo('version')
+    except RuntimeError:
+        # If there is a runtime error, it likely means InputStream Adaptive doesn't exist
+        if not is_helper.check_inputstream():
+            xbmcgui.Dialog().notification(__localize__(30011), __localize__(30038), xbmcgui.NOTIFICATION_ERROR)
+            return
 
     # If the user has a high enough InputStream adaptive version which supports separate audio, use it
     # Must also be a m3u8 file. If path ends in .mp4 it must go to the else block.
@@ -765,7 +774,6 @@ def play_video(path):
         # BEGIN INPUT STREAM ADAPTIVE
         STREAM_URL = path
     
-        is_helper = inputstreamhelper.Helper(PROTOCOL)
         if not is_helper.check_inputstream():
             xbmcgui.Dialog().notification(__localize__(30011), __localize__(30038), xbmcgui.NOTIFICATION_ERROR)
             return
