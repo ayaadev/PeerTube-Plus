@@ -623,9 +623,8 @@ def list_videos(mode, search, page):
     # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        # TODO
-        #genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
-        genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page)
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
+        #genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page)
     except StopExecution:
         return
 
@@ -671,9 +670,8 @@ def list_videos(mode, search, page):
             # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
             # Pass mode here so it can know when it needs to check if results are local or not
             # Pass host here, since the program only knows here
-            # TODO
-            #videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
-            videoURL, description, tags = get_video(CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
+            videoURL, description, tags = cache.cacheFunction(get_video, CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
+            #videoURL, description, tags = get_video(CUSTOM_INSTANCE, mode, video["account"]["host"], video["id"])
         except StopExecution as e:
             # Manually clear the get_videos cache so the error doesn't get cached in the results
             cache.delete("get_videos")
