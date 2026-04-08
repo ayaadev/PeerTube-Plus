@@ -40,11 +40,11 @@ msgid "Error logging in"
 msgstr ""
 
 msgctxt "#30004"
-msgid "There was a mismatch between client details. Please try logging in again."
+msgid "There was a mismatch between client details. Please login again."
 msgstr ""
 
 msgctxt "#30005"
-msgid "Invalid credentials."
+msgid "Invalid credentials. Please login again."
 msgstr ""
 
 msgctxt "#30006"
@@ -189,7 +189,7 @@ msgstr ""
 
 # Menu
 msgctxt "#30039"
-msgid "New Search"
+msgid "[B]New Search[/B]"
 msgstr ""
 
 # Dialog
