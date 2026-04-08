@@ -747,6 +747,12 @@ def get_video(instance_url, mode, host, id):
         traceback.print_exc()
         raise StopExecution("An unexpected error occurred", data=[e])
 
+# Create a custom function to compare version numbers
+def compare_versions(v1, v2):
+    version1 = [int(x) for x in v1.split('.')]
+    version2 = [int(x) for x in v2.split('.')]
+    return version1 > version2
+
 def play_video(path):
     # Check InputStream Adaptive version
     addon = Addon('inputstream.adaptive')
@@ -754,7 +760,7 @@ def play_video(path):
 
     # If the user has a high enough InputStream adaptive version which supports separate audio, use it
     # Must also be a m3u8 file. If path ends in .mp4 it must go to the else block.
-    if version >= "22.3.6" and path.endswith(".m3u8"):
+    if compare_versions(version, "22.3.6") and path.endswith(".m3u8"):
     
         # BEGIN INPUT STREAM ADAPTIVE
         STREAM_URL = path
