@@ -14,7 +14,11 @@
 - Pagination on video feeds which increases responsiveness
 
 ## Planned features
-- Filters for global search (SepiaSearch) 
+- Filters for global search (SepiaSearch)
+- Add a "Playlists" feed which shows the user's playlists (https://github.com/ayaadev/PeerTube-Plus/issues/13)
+- Add a "Watch Later" feed (https://github.com/ayaadev/PeerTube-Plus/issues/13)
+- Allow for multiple users with their own custom instance (https://github.com/ayaadev/PeerTube-Plus/issues/14)
+- Show subscribed channels (and their videos) in a feed (https://github.com/ayaadev/PeerTube-Plus/issues/15)
 - Torrent PeerTube videos
 
 **Is a feature you want not listed here? Please [create a new issue](https://github.com/ayaadev/PeerTube-Plus/issues/new?template=%E2%9C%A8-feature-request.md) with your feature request.**
