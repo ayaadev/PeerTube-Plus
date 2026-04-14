@@ -105,6 +105,8 @@ To watch any video, simply click on your desired feed and locate the video you w
 - These tokens will only last for at most 2 weeks, but treat them like your password and never share it nor your Kodi directory online.
 - The plugin only stores data inside its respective directory inside the Kodi folder, except for cached results which are stored in a shared database in `temp/commoncache.db`.
 
+To report a security vulnerability, please refer to the [SECURITY.md](/SECURITY.md) file for details.
+
 ## Known limitations
 - For certain videos, video playback has no audio. This is not an issue with this addon but instead an issue with [InputStream Adaptive](https://github.com/xbmc/inputstream.adaptive). They only [recently added support](https://github.com/xbmc/inputstream.adaptive/pull/1915) for PeerTube's separate audio streams, so there may be some bugs.
 - Despite that issue, [InputStream Adaptive](https://github.com/xbmc/inputstream.adaptive) is still used because it is the only player (to the best of my knowledge) that can reliably play HLS videos with timeshift support.
