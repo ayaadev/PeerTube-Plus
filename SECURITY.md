@@ -14,7 +14,7 @@ You may report a vulnerability in one of two ways:
 1. Report a vulnerability through GitHub by using the following link: https://github.com/ayaadev/PeerTube-Plus/security/advisories/new
 2. If you do not want to use GitHub, please email: security-report@happy-mochi.com
 
-You will get an update on your reported vulnerability as soon as possible. If you do not get a response within 7 days, please try reporting the vulnerability again. If you do not get a response within 7 days of the second report, you can assume unforeseen circumstances have happened to all maintainers which prohibits a reply (i.e. death, serious illness, etc).
+You will get an update on your reported vulnerability as soon as possible. If you do not get a response within 7 days, please try reporting the vulnerability again. If you do not get a response within 30 days of the second report, you can assume unforeseen circumstances have happened to all maintainers which prohibits a reply (i.e. death, serious illness, major operation, etc).
 
 **If the vulnerability is accepted:**
 - Any necessary fixes will be implemented.
