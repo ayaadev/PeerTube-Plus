@@ -4,7 +4,7 @@
 
 <!--- If you are fixing a bug, describe the issue you are fixing and how you fixed it. -->
 <!--- If you are adding a new feature, describe why you believe the feature should be added and what changes you made to the code. -->
-<!--- Refer to the [CONTRIBUTING.md](/CONTRIBUTING.md) file for details. -->
+<!--- Refer to the CONTRIBUTING.md file in the root of this repository for details. -->
 
 ## Related issues
 
