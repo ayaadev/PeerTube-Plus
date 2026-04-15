@@ -217,5 +217,3 @@ msgid "Remove Custom instance"
 msgstr ""
 
 #empty strings from id 30103 to 30109
-
-ko
