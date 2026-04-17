@@ -11,6 +11,12 @@
   - **If you are fixing a bug**: The issue you are fixing and how you fixed it. If there is a relevant issue to your pull request, please include the issue number.
   - **If you are adding a new feature**: Why you believe the feature should be added and what changes you made to the code.
 
+## Translating
+- Please use https://translate.solomon.tech for all translations.
+- Always follow the [Code of Conduct](https://github.com/ayaadev/PeerTube-Plus/blob/main/CODE_OF_CONDUCT.md) when translating.
+- You are welcome to translate existing languages without an account as users with accounts can review your suggestions.
+- To add a new language to translate, please [create an account](https://translate.solomon.tech/accounts/register/) and [create a new translation](https://translate.solomon.tech/new-lang/peertube-plus/).
+
 ## General discussions (questions, etc)
 Please [open a discussion](https://github.com/ayaadev/PeerTube-Plus/discussions/new/choose) in the relevant category.
 
