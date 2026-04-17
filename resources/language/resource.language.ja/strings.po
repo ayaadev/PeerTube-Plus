@@ -1,0 +1,213 @@
+# Kodi language file
+# Addon id: plugin.video.peertube-plus
+# Addon Provider: ayaadev
+msgid ""
+msgstr ""
+"Project-Id-Version: Kodi-Addons\n"
+"Last-Translator: Automatically generated\n"
+"Language-Team: none\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgctxt "Addon Summary"
+msgid "PeerTube Plus - Finally watch PeerTube on Kodi"
+msgstr ""
+
+msgctxt "Addon Description"
+msgid "A next-generation PeerTube addon for Kodi with features such as different feeds and account authentication with 2FA support!"
+msgstr ""
+
+#Plugin name
+msgctxt "#30000"
+msgid "PeerTube Plus"
+msgstr ""
+
+# Dialog
+msgctxt "#30001"
+msgid "Please enter your username"
+msgstr ""
+
+msgctxt "#30002"
+msgid "Please enter your password"
+msgstr ""
+
+msgctxt "#30003"
+msgid "Error logging in"
+msgstr ""
+
+msgctxt "#30004"
+msgid "There was a mismatch between client details. Please login again."
+msgstr ""
+
+msgctxt "#30005"
+msgid "Invalid credentials. Please login again."
+msgstr ""
+
+msgctxt "#30006"
+msgid "Due to PeerTube's API limitations, only passwords under 72 characters can be accepted. Please consider keeping your password under 72 characters. Sorry for the inconvenience."
+msgstr ""
+
+msgctxt "#30007"
+msgid "Please enter your two-factor authentication code."
+msgstr ""
+
+msgctxt "#30008"
+msgid "Session expired"
+msgstr ""
+
+msgctxt "#30009"
+msgid "Your session has expired. Please login again."
+msgstr ""
+
+msgctxt "#30010"
+msgid "There was an unspecified authentication failure."
+msgstr ""
+
+msgctxt "#30011"
+msgid "Error"
+msgstr ""
+
+msgctxt "#30012"
+msgid "Could not create userdata directory to store data."
+msgstr ""
+
+msgctxt "#30013"
+msgid "Could not write to the credentials file."
+msgstr ""
+
+msgctxt "#30014"
+msgid "Please login to continue this action."
+msgstr ""
+
+msgctxt "#30015"
+msgid "Success"
+msgstr ""
+
+msgctxt "#30016"
+msgid "You have been logged out."
+msgstr ""
+
+msgctxt "#30017"
+msgid "HTTP Error {0}"
+msgstr ""
+
+msgctxt "#30018"
+msgid "Error message: {0}. Code: {1}."
+msgstr ""
+
+msgctxt "#30019"
+msgid "An unexpected error occurred. Error message: {0}."
+msgstr ""
+
+msgctxt "#30020"
+msgid "Custom instance not specified"
+msgstr ""
+
+msgctxt "#30021"
+msgid "Please specify a PeerTube instance in the addon settings. It cannot start with 'http'. For example, use 'instance.com' instead of 'https://instance.com'."
+msgstr ""
+
+# Menu
+msgctxt "#30022"
+msgid "Search"
+msgstr ""
+
+msgctxt "#30023"
+msgid "Global Search"
+msgstr ""
+
+msgctxt "#30024"
+msgid "All Videos"
+msgstr ""
+
+msgctxt "#30025"
+msgid "Trending"
+msgstr ""
+
+msgctxt "#30026"
+msgid "Local Videos"
+msgstr ""
+
+msgctxt "#30027"
+msgid "Subscriptions"
+msgstr ""
+
+msgctxt "#30028"
+msgid "Logout"
+msgstr ""
+
+msgctxt "#30029"
+msgid "Login"
+msgstr ""
+
+# Dialog
+msgctxt "#30030"
+msgid "An unexpected error occurred while performing an authenticated action."
+msgstr ""
+
+msgctxt "#30031"
+msgid "An unexpected error occurred while performing an authenticated action. Error message: {0}."
+msgstr ""
+
+msgctxt "#30032"
+msgid "No results were found. Please try another feed."
+msgstr ""
+
+msgctxt "#30033"
+msgid "Error getting video"
+msgstr ""
+
+msgctxt "#30034"
+msgid "One or more videos in the feed refused to be displayed. This is an issue with the video or your PeerTube instance, not an issue with this addon. Please try another feed, change the instance in the addon settings, or contact your PeerTube instance's administrators.[CR]Error message: {0}[CR]Video title: {1}[CR]Video URL: {2}"
+msgstr ""
+
+# Video stats
+msgctxt "#30035"
+msgid "Views: {0}"
+msgstr ""
+
+msgctxt "#30036"
+msgid "Likes: {0}"
+msgstr ""
+
+msgctxt "#30037"
+msgid "Page {0}"
+msgstr ""
+
+# Dialog
+msgctxt "#30038"
+msgid "InputStream Adaptive is not available."
+msgstr ""
+
+# Menu
+msgctxt "#30039"
+msgid "[B]New Search[/B]"
+msgstr ""
+
+# Dialog
+msgctxt "#30040"
+msgid "Could not access the search history."
+msgstr ""
+
+msgctxt "#30041"
+msgid "Delete search"
+msgstr ""
+
+#Settings
+#empty strings from id 30001 to 30099
+msgctxt "#30100"
+msgid "Custom Instance"
+msgstr ""
+
+msgctxt "#30101"
+msgid "Add Custom instance"
+msgstr ""
+
+msgctxt "#30102"
+msgid "Remove Custom instance"
+msgstr ""
+
+#empty strings from id 30103 to 30109
