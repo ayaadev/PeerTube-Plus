@@ -17,7 +17,8 @@
 
 - [ ] 👍 Yes, I have done the following tests:
   - (please elaborate)
-- [ ] 🙅 No, because this PR is a draft and still needs work
+- [ ] 🔧 No, because this PR is a draft and still needs work.
+- [ ] 🙅 No, because this PR does not modify code.
 
 ## Screenshots
 
