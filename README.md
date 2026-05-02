@@ -100,7 +100,8 @@ To watch any video, simply click on your desired feed and locate the video you w
 
 
 ## Privacy and Security
-- Your username, password and two-factor authentication code are never stored.
+- Your password and two-factor authentication code are never stored.
+- Your username is stored to make it faster to get playlists.
 - However, your access token and refresh token (which gives the API access to your account) are stored in plaintext in the addon directory.
 - These tokens will only last for at most 2 weeks, but treat them like your password and never share it nor your Kodi directory online.
 - The plugin only stores data inside its respective directory inside the Kodi folder, except for cached results which are stored in a shared database in `temp/commoncache.db`.
