@@ -41,6 +41,17 @@ CUSTOM_INSTANCE = Addon().getSetting('custom_instance')
 window.setProperty("API", f"https://{CUSTOM_INSTANCE}/api/v1")
 API = f"https://{CUSTOM_INSTANCE}/api/v1"
 
+# How many videos to request per page. PeerTube's API caps "count" at 100,
+# and a missing/garbled setting must not break the listing, so clamp it.
+def get_page_size():
+    try:
+        size = int(Addon().getSetting('page_size'))
+    except (TypeError, ValueError):
+        return 15
+    return max(1, min(size, 100))
+
+PAGE_SIZE = get_page_size()
+
 __localize__ = Addon().getLocalizedString
 
 # Create a custom exception for use in the functions
@@ -561,10 +572,12 @@ def get_token():
          
             
 # Must take instance_url to invalidate cache if the user changes their instance
-def get_videos(instance_url, searchQuery, mode, page):
+# Must take count for the same reason, so changing the page size doesn't serve
+# cached pages sized for the old setting
+def get_videos(instance_url, searchQuery, mode, page, count):
     
-    start = page * 15
-    queryParams = f"?start={start}&count=15"
+    start = page * count
+    queryParams = f"?start={start}&count={count}"
 
     # Only try to get the access token if the user is performing an authenticated request
     if mode == "subscriptions":
@@ -596,8 +609,9 @@ def get_videos(instance_url, searchQuery, mode, page):
         error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
         raise StopExecution("No results were found", data=[])
 
-    # Return the data
-    return r["data"]
+    # Return the data plus the total, so the caller can tell whether another
+    # page actually exists instead of guessing from the page size
+    return r["data"], r.get("total", 0)
 
 def generate_item_info(self, name, url, is_folder=True, thumbnail="",
                         aired="", duration=0, plot="",):
@@ -623,8 +637,8 @@ def list_videos(mode, search, page):
     # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
-        #genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page)
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page, PAGE_SIZE)
+        #genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page, PAGE_SIZE)
     except StopExecution:
         return
 
@@ -633,11 +647,12 @@ def list_videos(mode, search, page):
     if not genre_info:
         return False
 
+    videos, total = genre_info
+
     xbmcplugin.setPluginCategory(HANDLE, 'Videos')
     # 'videos', not 'movies': movie views expect portrait 2:3 box art, but
     # PeerTube previews are 16:9, so the skin offers landscape views instead
     xbmcplugin.setContent(HANDLE, 'videos')
-    videos = genre_info
 
     # List of elements to add to the screen
     listing = []
@@ -743,10 +758,10 @@ def list_videos(mode, search, page):
         listing.append((url, list_item, is_folder))
 
     
-    # Do a preliminary check to see if there's most likely another page
-    # This will still show a next page button even if the results end on a number divisible by 15
-    # Could do an API check in the future
-    if len(videos) == 15:
+    # Only offer a next page when the API's total says more results actually
+    # follow this one, so an exact multiple of the page size can't produce a
+    # "next page" that lands on an empty result
+    if page * PAGE_SIZE + len(videos) < total:
         # Add a list item to load more
         # Add two to the page number so it looks like the page starts at 1
         # Improves UX

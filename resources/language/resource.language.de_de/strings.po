@@ -210,4 +210,8 @@ msgctxt "#30102"
 msgid "Remove Custom instance"
 msgstr ""
 
-#empty strings from id 30103 to 30109
+msgctxt "#30103"
+msgid "Videos per page"
+msgstr ""
+
+#empty strings from id 30104 to 30109

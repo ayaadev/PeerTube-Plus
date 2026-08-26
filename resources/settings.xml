@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
 	<setting id="custom_instance" type="text" option="urlencoded" label="30100" default=""/>
+	<setting id="page_size" type="slider" label="30103" default="15" range="5,5,100" option="int"/>
 	<setting id="show_inputstream_adaptive" visible="false" enable="false" type="text" option="hidden" default="True"/>
 </settings>
