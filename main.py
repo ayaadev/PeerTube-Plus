@@ -634,7 +634,9 @@ def list_videos(mode, search, page):
         return False
 
     xbmcplugin.setPluginCategory(HANDLE, 'Videos')
-    xbmcplugin.setContent(HANDLE, 'movies')
+    # 'videos', not 'movies': movie views expect portrait 2:3 box art, but
+    # PeerTube previews are 16:9, so the skin offers landscape views instead
+    xbmcplugin.setContent(HANDLE, 'videos')
     videos = genre_info
 
     # List of elements to add to the screen
@@ -732,7 +734,9 @@ def list_videos(mode, search, page):
         
         list_item.setProperty('IsPlayable', 'true')
         image = f"https://{CUSTOM_INSTANCE}{video['previewPath']}"
-        list_item.setArt({ 'icon': image, 'fanart': image, 'thumb': image, 'poster': image})
+        # No 'poster' here - it is the portrait slot, and stuffing a 16:9 preview
+        # into it is what makes wall/poster views letterbox the thumbnails
+        list_item.setArt({ 'icon': image, 'fanart': image, 'thumb': image, 'landscape': image})
 
         url = get_url(action='play', video=videoURL)
         is_folder = False
