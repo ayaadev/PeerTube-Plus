@@ -564,7 +564,7 @@ def get_token():
 def get_videos(instance_url, searchQuery, mode, page):
     
     start = page * 15
-    queryParams = f"?start={start}&count=15&hasHLSFiles=true"
+    queryParams = f"?start={start}&count=15"
 
     # Only try to get the access token if the user is performing an authenticated request
     if mode == "subscriptions":
@@ -640,6 +640,9 @@ def list_videos(mode, search, page):
     # List of elements to add to the screen
     listing = []
 
+    # Only warn about a failing video once, no matter how many fail on this page
+    shownVideoError = False
+
     for video in videos:
         xbmc.log(f'Title of video being processed: {video["name"]}')
         list_item = xbmcgui.ListItem(label=video['name'])
@@ -676,18 +679,24 @@ def list_videos(mode, search, page):
             # Manually clear the get_videos cache so the error doesn't get cached in the results
             cache.delete("get_videos")
             
-            # If the error message has specific details (message = "Error getting video") then return a more detailed response
-            if e.message == "Error getting video":
-                errorMessage = e.data[0]
-                videoTitle = video["name"]
-                videoURL = e.data[1]
-                error = dialog.ok(__localize__(30033), __localize__(30034).format(errorMessage, videoTitle, videoURL))
+            # A video with nothing playable (e.g. a bad global search result) is skipped silently
             if e.message == "No streamingPlaylists":
-                # Skip the bad global search result
                 continue
-            else:
-                error = dialog.ok(__localize__(30011), __localize__(30019).format(e.data[0]))
-            return
+
+            # Warn once, then skip the video, so a single bad entry doesn't drop the rest of the page
+            if not shownVideoError:
+                shownVideoError = True
+
+                # If the error message has specific details (message = "Error getting video") then show a more detailed response
+                if e.message == "Error getting video":
+                    errorMessage = e.data[0]
+                    videoTitle = video["name"]
+                    videoURL = e.data[1]
+                    error = dialog.ok(__localize__(30033), __localize__(30034).format(errorMessage, videoTitle, videoURL))
+                else:
+                    error = dialog.ok(__localize__(30011), __localize__(30019).format(e.data[0]))
+
+            continue
         
         # NOTE
         # The second assignment is mostly unnecessary - change in the future
@@ -766,6 +775,16 @@ def get_video(instance_url, mode, host, id):
             request = requests.get(f"{API}/videos/{id}")
         r = request.json()
 
+        # There can be a "does_not_respect_follow_constraints" error here, so check the status code and handle the error gracefully
+        # See: https://framacolibri.org/t/embed-error-cannot-get-this-video-regarding-follow-constraints/24390
+        # See: https://docs.joinpeertube.org/api-rest-reference.html#section/Errors
+        # This has to happen before reading any video fields, since an error response contains none of them
+        if request.status_code != 200:
+            detail = r.get("detail", "")
+            originUrl = r.get("originUrl", "")
+
+            raise StopExecution("Error getting video", data=[detail, originUrl])
+
         # There can be no streamingPlaylists array, so check for that and try returning the fileUrl instead
         if not r["streamingPlaylists"]:
             # If there are no files, skip it
@@ -775,20 +794,11 @@ def get_video(instance_url, mode, host, id):
             # If there were files, return
             return r["files"][0]["fileUrl"], r["description"], r["tags"]
 
-        # There can be a "does_not_respect_follow_constraints" error here, so check the status code and handle the error gracefully
-        # See: https://framacolibri.org/t/embed-error-cannot-get-this-video-regarding-follow-constraints/24390
-        # See: https://docs.joinpeertube.org/api-rest-reference.html#section/Errors
-
         # If everything was okay, return
-        if request.status_code == 200:
-            return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
-        else:
-            detail = r["detail"]
-            originUrl = r["originUrl"]
+        return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
 
-            raise StopExecution("Error getting video", data=[detail, originUrl])
-
-    except requests.RequestException as e:
+    # ValueError covers a non-JSON body (e.g. a gateway error page), which request.json() raises on
+    except (requests.RequestException, ValueError) as e:
         traceback.print_exc()
         raise StopExecution("An unexpected error occurred", data=[e])
 

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="repository.les19" name="les19 Kodi Repository" version="1.0.0" provider-name="les19">
+    <extension point="xbmc.addon.repository" name="les19 Kodi Repository">
+        <dir>
+            <info compressed="false">https://les19.github.io/PeerTube-Plus/repo/zips/addons.xml</info>
+            <checksum>https://les19.github.io/PeerTube-Plus/repo/zips/addons.xml.md5</checksum>
+            <datadir zip="true">https://les19.github.io/PeerTube-Plus/repo/zips/</datadir>
+        </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+        <summary>les19 Kodi Repository</summary>
+        <description>Personal repository hosting the les19 fork of the PeerTube Plus addon.</description>
+        <disclaimer>Unofficial fork of ayaadev/PeerTube-Plus.</disclaimer>
+        <platform>all</platform>
+        <assets>
+            <icon>icon.png</icon>
+            <fanart>fanart.png</fanart>
+        </assets>
+    </extension>
+</addon>

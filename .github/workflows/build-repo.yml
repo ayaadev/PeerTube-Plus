@@ -1,0 +1,57 @@
+name: Build Kodi repository
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+      - '.github/ISSUE_TEMPLATE/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Let a running deploy finish rather than cancelling it half-published
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Build repository
+        run: python3 repo/build_repo.py --out _site
+
+      - name: Verify addons.xml checksum
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          raw = open('_site/repo/zips/addons.xml','rb').read()
+          want = hashlib.md5(raw).hexdigest()
+          have = open('_site/repo/zips/addons.xml.md5').read().strip()
+          assert want == have, f"md5 mismatch: {want} != {have}"
+          print("checksum ok:", want)
+          PY
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
