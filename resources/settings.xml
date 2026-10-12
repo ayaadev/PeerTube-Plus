@@ -1,5 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
-<settings>
-	<setting id="custom_instance" type="text" option="urlencoded" label="30100" default=""/>
+<settings version="2">
+	<category label="30100">
+		<group label="30100">
+			<setting id="custom_instance" type="text" label="30100" help="Enter your PeerTube instance URL without http/https"/>
+		</group>
+	</category>
+	<category label="30103">
+		<group label="30103">
+			<setting id="max_resolution" type="select" label="30103" default="0">
+				<option label="30110">0</option>
+				<option label="30111">1</option>
+				<option label="30112">2</option>
+				<option label="30113">3</option>
+				<option label="30114">4</option>
+			</setting>
+		</group>
+	</category>
 	<setting id="show_inputstream_adaptive" visible="false" enable="false" type="text" option="hidden" default="True"/>
 </settings>

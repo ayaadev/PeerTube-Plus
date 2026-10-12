@@ -53,6 +53,41 @@ class StopExecution(Exception):
 def get_url(**kwargs):
     return '{}?{}'.format(URL, urlencode(kwargs))
 
+# Resolution mapping for filtering
+RESOLUTION_MAP = {
+    0: None,  # Unlimited
+    1: 1080,  # 1080p
+    2: 720,   # 720p
+    3: 480,   # 480p
+    4: 360    # 360p
+}
+
+def get_max_resolution_setting():
+    """Get the maximum resolution setting from addon settings"""
+    try:
+        max_res_index = int(Addon().getSetting('max_resolution'))
+        return RESOLUTION_MAP.get(max_res_index, None)
+    except:
+        return None
+
+def filter_stream_by_resolution(streams, max_resolution):
+    """
+    Filter streaming playlists by maximum resolution.
+    Returns the best stream that doesn't exceed the max resolution.
+    """
+    if max_resolution is None or not streams:
+        # Return the first (highest quality) stream if no limit
+        return streams[0] if streams else None
+    
+    # Filter streams that don't exceed max resolution
+    filtered = [s for s in streams if s.get('resolution') and s['resolution']['videoHeight'] <= max_resolution]
+    
+    # Return the best stream within the resolution limit, or the lowest quality if all exceed
+    if filtered:
+        return max(filtered, key=lambda s: s['resolution']['videoHeight'])
+    else:
+        return min(streams, key=lambda s: s['resolution']['videoHeight'])
+
 # Allow the user to login
 def login(mode, token):
     credentialsFile = "credentials.json"
@@ -918,6 +953,7 @@ def list_videos(mode, search, page, playlistID):
 def get_video(instance_url, mode, host, id):
     xbmc.log("id is %s" % id, xbmc.LOGDEBUG)
     API = window.getProperty('API')
+    max_resolution = get_max_resolution_setting()
     
     try:
         # If it's a global search, always change the API to be host
@@ -942,7 +978,15 @@ def get_video(instance_url, mode, host, id):
 
         # If everything was okay, return
         if request.status_code == 200:
-            return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
+            # Filter streams by maximum resolution setting
+            streams = r["streamingPlaylists"]
+            selected_stream = filter_stream_by_resolution(streams, max_resolution)
+            
+            if selected_stream:
+                return selected_stream["playlistUrl"], r["description"], r["tags"]
+            else:
+                # Fallback to first stream if filtering fails
+                return r["streamingPlaylists"][0]["playlistUrl"], r["description"], r["tags"]
         else:
             detail = r["detail"]
             originUrl = r["originUrl"]
