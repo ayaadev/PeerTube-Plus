@@ -139,9 +139,9 @@ def login(mode, token):
             r = requests.post(url, data=payload, headers=headers)
             status = r.status_code
             credentials = r.json()
-            #error = dialog.ok('Error logging in', "Your account requires two factor authentication which is unsupported at this time. Sorry for the inconvenience.")
 
         elif credentials["code"] == "invalid_token":
+            # If the token is invalid, don't call the logout function because it will also return an invalid token error
             data = {}
 
             # The other try block handles a file not found error, so we don't need to check here
@@ -158,7 +158,6 @@ def login(mode, token):
                 file.write(json.dumps(data, ensure_ascii=False, indent=4))
 
             error = dialog.ok(__localize__(30008), __localize__(30009))
-            
             return
         else:
             error = dialog.ok(__localize__(30003), __localize__(30010))
@@ -178,7 +177,9 @@ def login(mode, token):
             data = json.loads(content)
 
             # Change / add the authenticated key to true
-            data["authenticated"] = True 
+            data["authenticated"] = True
+            # Store the username for playlists
+            data["username"] = username
         
         with xbmcvfs.File(DATA_PATH, 'w') as file:
             # Save the file
@@ -190,8 +191,8 @@ def login(mode, token):
     except (json.JSONDecodeError, FileNotFoundError):
         # Open the file
         with xbmcvfs.File(DATA_PATH, 'w') as file:
-            # Create the file and add authenticated = True
-            data = {"authenticated": True}
+            # Create the file and add authenticated = True, username = username (for playlists)
+            data = {"authenticated": True, "username": username}
             file.write(json.dumps(data, ensure_ascii=False, indent=4))
     # General catch statement
     except Exception:
@@ -413,9 +414,192 @@ def search_menu(mode):
 
     xbmcplugin.endOfDirectory(HANDLE)
 
+# Get the playlist data.
+# This is separated from the menu so it can be cached
+def get_playlists(username):
+    try:
+        # Get the access token
+        access_token = get_token()
+
+        # If there was an error, also cancel this function
+        if not access_token:
+            return []
+        
+        headers = {"Authorization": f"Bearer {access_token}"}
+    
+        # Get all the playlists
+        playlistsReq = requests.get(f"{API}/accounts/{username}/video-playlists?playlistType=1", headers=headers)
+        playlists = playlistsReq.json()
+
+        # If there were no results
+        if "data" not in playlists or not playlists["data"]:
+            error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
+            # Raise so the menu function can stop
+            raise StopExecution("No results were found", data=[])
+   
+        # Return the playlists
+        return playlists["data"]
+
+    except Exception as e:
+        error = dialog.notification(__localize__(30011), __localize__(30031).format(e), xbmcgui.NOTIFICATION_ERROR)
+        traceback.print_exc()
+        return []
+ 
+# The playlists menu
+def playlists_menu():
+    dialog = xbmcgui.Dialog()
+    
+    listing = []
+
+    try:
+        DATA_PATH = USERDATA_PATH + "data.json"
+        
+        # Get the username from the file
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
+            # Read the data and load it to JSON
+            content = file.read()
+            data = json.loads(content)
+
+            # Get the username
+            username = data["username"]
+
+        playlists = cache.cacheFunction(get_playlists, username)
+
+        # The data probably exists if this occurs
+        for playlist in playlists:
+            name = playlist["displayName"]
+            playlistID = playlist["id"]
+            
+            playlist = xbmcgui.ListItem(label=name)
+            playlistURL = get_url(action='listing', mode='playlist', playlistID=playlistID)
+            listing.append((playlistURL, playlist, True))
+        
+        # Batch add once
+        xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
+
+        xbmcplugin.endOfDirectory(HANDLE)
+
+    except StopExecution:
+        return
+    except KeyError:
+        # If the username isn't stored (e.g. after upgrading to this version) then login again
+        data = {}
+
+        # The other try block handles a file not found error, so we don't need to check here
+        with xbmcvfs.File(DATA_PATH, 'r') as file:
+            # Read the data and load it to JSON
+            content = file.read()
+            data = json.loads(content)
+
+            # Change the authenticated key to false
+            data["authenticated"] = False
+                
+        with xbmcvfs.File(DATA_PATH, 'w') as file:
+            # Save the file
+            file.write(json.dumps(data, ensure_ascii=False, indent=4))
+
+        error = dialog.ok(__localize__(30008), __localize__(30009))
+        return
+
+    # If the file doesn't exist
+    except json.JSONDecodeError:
+        # This shouldn't be possible so pass
+        pass
+    except Exception as e:
+        error = dialog.notification(__localize__(30011), __localize__(30031).format(e), xbmcgui.NOTIFICATION_ERROR)
+        traceback.print_exc()
+        return False
+
+# Get the subscribed channels
+# This is separated so it can be cached
+def get_subscribed_channels(page):
+    start = page * 15
+    queryParams = f"?start={start}&count=15"
+
+    # Get the access key
+    access_token = get_token()
+
+    # If there was an error, also cancel this function
+    if not access_token:
+        return []
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    request = requests.get(f"{API}/users/me/subscriptions{queryParams}", headers=headers)
+
+    r = request.json()
+    
+    # If there were no results
+    if "data" not in r or not r["data"]:
+        error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
+        raise StopExecution("No results were found", data=[])
+
+    # Return the data
+    return r["data"]
+
+# List the subscribed channels
+# TODO/NOTE: subscribed channels doesn't currently work.
+# uncommited code on pc was simply pushed for others to see.
+# need to fix channels before merging to main.
+def subscribed_channels(page):
+    # NOTE AGAIN
+    # Consider using listing function instead of doing much of the same here.
+    try:
+        channels = cache.cacheFunction(get_subscribed_channels, page)
+    except StopExecution:
+        return
+
+    # If there was an error upstream
+    # This should be covered by the except, though
+    if not channels:
+        return False
+
+    listing = []
+
+    for channel in channels:
+        channel = xbmcgui.ListItem(label=channel["displayName"])
+        channelURL = get_url(action='listing')
+
+    # Do a preliminary check to see if there's most likely another page
+    # This will still show a next page button even if the results end on a number divisible by 15
+    # Could do an API check in the future
+    if len(channels) == 15:
+        # Add a list item to load more
+        # Add two to the page number so it looks like the page starts at 1
+        # Improves UX
+        refresh_item = xbmcgui.ListItem(label=__localize__(30037).format(page+2))
+    
+        # Use actually correct page number behind the scenes (page+1)
+        next_url = get_url(action='subscribed_channels', page=page+1)
+        is_folder = True
+        listing.append((next_url, refresh_item, is_folder))
+
+    # NOTE: Unfinished.
+
+
+# The menu for subscriptions
+def subscriptions_menu():
+    dialog = xbmcgui.Dialog()
+    
+    listing = []
+
+    # Subscribed Channels
+    # TODO/NOTE: subscribed channels doesn't currently work.
+    # uncommited code on pc was simply pushed for others to see.
+    # need to fix channels before merging to main.
+    channels = xbmcgui.ListItem(label=__localize__(30044))
+    channelsURL = get_url(action='subscribed_channels')
+    listing.append((channelsURL, channels, True))
+
+    videos = xbmcgui.ListItem(label=__localize__(30045))
+    videosURL = get_url(action='listing', mode='subscriptions')
+    listing.append((videosURL, videos, True))
+
+    # Batch add once
+    xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
+    xbmcplugin.endOfDirectory(HANDLE)
+
 # The selection menu of the addon
 def menu():
-
     # Check if the custom instance was set
     if not CUSTOM_INSTANCE or CUSTOM_INSTANCE == "" or CUSTOM_INSTANCE.startswith("http"):
         xbmcgui.Dialog().ok(__localize__(30020), __localize__(30021))
@@ -461,19 +645,30 @@ def menu():
             if data["authenticated"] == True:
                 is_folder = True
                 
+                # Subscriptions
                 subscriptions = xbmcgui.ListItem(label=__localize__(30027))
-                subscriptionsURL = get_url(action='listing', mode='subscriptions')
-                
+                #subscriptionsURL = get_url(action='listing', mode='subscriptions')
+                subscriptionsURL = get_url(action='subscriptions')
                 # Append subscriptions to listing variable
                 listing.append((subscriptionsURL, subscriptions, is_folder))
 
+                # Watch Later
+                watchLater = xbmcgui.ListItem(label=__localize__(30042))
+                watchLaterURL = get_url(action='listing', mode='watch_later')
+                listing.append((watchLaterURL, watchLater, is_folder))
+
+                # Playlists
+                playlists = xbmcgui.ListItem(label=__localize__(30043))
+                playlistsURL = get_url(action='playlists')
+                listing.append((playlistsURL, playlists, is_folder))
+
+                # Logout
                 logout = xbmcgui.ListItem(label=__localize__(30028))
                 logoutURL = get_url(action='logout')
-
                 # Append logout to listing variable
                 listing.append((logoutURL, logout, is_folder))
 
-                #xbmcplugin.addDirectoryItems(HANDLE, [(subscriptionsURL, subscriptions, is_folder), (logoutURL, logout, is_folder)])
+
             else:
                 is_folder = True
                 
@@ -561,8 +756,10 @@ def get_token():
          
             
 # Must take instance_url to invalidate cache if the user changes their instance
-def get_videos(instance_url, searchQuery, mode, page):
-    
+def get_videos(instance_url, searchQuery, mode, page, playlistID):
+    # TODO
+    # Make these requests, as well as the get_video function's requests, run in parallel with asyncio
+
     start = page * 15
     queryParams = f"?start={start}&count=15&hasHLSFiles=true"
 
@@ -573,7 +770,7 @@ def get_videos(instance_url, searchQuery, mode, page):
 
         # If there was an error, also cancel this function
         if not access_token:
-            return False
+            return []
 
         headers = {"Authorization": f"Bearer {access_token}"}
         request = requests.get(f"{API}/users/me/subscriptions/videos{queryParams}", headers=headers)
@@ -585,6 +782,27 @@ def get_videos(instance_url, searchQuery, mode, page):
         request = requests.get(f"{API}/search/videos{queryParams}&search={searchQuery}")
     elif mode == "global_search":
         request = requests.get(f"https://sepiasearch.org/api/v1/search/videos{queryParams}&search={searchQuery}")
+    elif mode == "watch_later":
+        # Get the access key
+        access_token = get_token()
+
+        # If there was an error, also cancel this function
+        if not access_token:
+            return []
+
+        headers = {"Authorization": f"Bearer {access_token}"}
+
+        request = requests.get(f"{API}/video-playlists/{playlistID}/videos{queryParams}", headers=headers)
+    elif mode == "playlist":
+        # Get the access key
+        access_token = get_token()
+
+        # If there was an error, also cancel this function
+        if not access_token:
+            return []
+
+        headers = {"Authorization": f"Bearer {access_token}"}
+        request = requests.get(f"{API}/video-playlists/{playlistID}/videos{queryParams}", headers=headers)
     else:
         # Default request
         request = requests.get(f"{API}/videos{queryParams}")
@@ -616,15 +834,43 @@ def generate_item_info(self, name, url, is_folder=True, thumbnail="",
         }
     }
 
-def list_videos(mode, search, page):
+def list_videos(mode, search, page, playlistID):
     dialog = xbmcgui.Dialog()
        
     # Cache results for 1 hour
     # Must pass search here so it gets new data if the user searches for anything new
     # Must pass CUSTOM_INSTANCE so it gets new data if the user changed their instance
     try:
-        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page)
-        #genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page)
+        # If it is a watch later request, get the playlist details here so it isn't cached
+        if mode == "watch_later":
+            # Get the access key
+            access_token = get_token()
+
+            # If there was an error, also cancel this function
+            if not access_token:
+                return
+
+            headers = {"Authorization": f"Bearer {access_token}"}
+
+            # Make a request to get the watch later playlist ID
+            playlistIDRequest = requests.get(f"{API}/users/me", headers=headers)
+        
+            # Get the request in JSON
+            r = playlistIDRequest.json()
+        
+            # If there were no results
+            if "specialPlaylists" not in r or not r["specialPlaylists"]:
+                error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
+                raise StopExecution("No results were found", data=[])
+
+            # Make sure the playlist is the watch later playlist
+            playlistID = 0
+            for playlist in r["specialPlaylists"]:
+                if playlist["name"] == "Watch later":
+                    playlistID = playlist["id"]
+
+        genre_info = cache.cacheFunction(get_videos, CUSTOM_INSTANCE, search, mode, page, playlistID)
+        #genre_info = get_videos(CUSTOM_INSTANCE, search, mode, page, playlistID)
     except StopExecution:
         return
 
@@ -636,11 +882,15 @@ def list_videos(mode, search, page):
     xbmcplugin.setPluginCategory(HANDLE, 'Videos')
     xbmcplugin.setContent(HANDLE, 'movies')
     videos = genre_info
-
+    
     # List of elements to add to the screen
     listing = []
 
     for video in videos:
+        # The watch later and playlist feeds add another key, 'video' that needs to be entered
+        if mode == "watch_later" or mode == "playlist":
+            video = video["video"] 
+        
         xbmc.log(f'Title of video being processed: {video["name"]}')
         list_item = xbmcgui.ListItem(label=video['name'])
         info_tag = list_item.getVideoInfoTag()
@@ -869,7 +1119,13 @@ def router(paramstring):
         except:
             searchQuery = ""
 
-        list_videos(params['mode'], searchQuery, page)
+        # Handle no playlist ID being provided
+        try:
+            playlistID = params.get('playlistID', 2)
+        except:
+            playlistID = 0
+
+        list_videos(params['mode'], searchQuery, page, playlistID)
     elif params['action'] == 'play':
         play_video(params['video'])
     elif params['action'] == 'login':
@@ -882,6 +1138,20 @@ def router(paramstring):
         new_search(params['mode'])
     elif params['action'] == 'delete_search':
         delete_search(params['mode'], params['search'])
+    elif params['action'] == 'playlists':
+        playlists_menu()
+    # Show subscriptions menu
+    elif params['action'] == 'subscriptions':
+        subscriptions_menu()
+    # Show subscribed channels
+    elif params['action'] == 'subscribed_channels':
+        # Handle there being no page provided
+        try:
+            page = int(params.get('page', 0))
+        except:
+            page = 0
+
+        subscribed_channels(page)
     else:
         raise ValueError(f'Invalid paramstring: {paramstring}!')
 

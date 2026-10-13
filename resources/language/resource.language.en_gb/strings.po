@@ -201,6 +201,23 @@ msgctxt "#30041"
 msgid "Delete search"
 msgstr ""
 
+# Menu
+msgctxt "#30042"
+msgid "Watch Later"
+msgstr ""
+
+msgctxt "#30043"
+msgid "Playlists"
+msgstr ""
+
+msgctxt "#30044"
+msgid "Channels"
+msgstr ""
+
+msgctxt "#30045"
+msgid "Videos"
+msgstr ""
+
 #Settings
 #empty strings from id 30001 to 30099
 
