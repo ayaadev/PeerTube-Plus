@@ -537,7 +537,12 @@ def get_subscribed_channels(page):
     return r["data"]
 
 # List the subscribed channels
+# TODO/NOTE: subscribed channels doesn't currently work.
+# uncommited code on pc was simply pushed for others to see.
+# need to fix channels before merging to main.
 def subscribed_channels(page):
+    # NOTE AGAIN
+    # Consider using listing function instead of doing much of the same here.
     try:
         channels = cache.cacheFunction(get_subscribed_channels, page)
     except StopExecution:
@@ -564,11 +569,11 @@ def subscribed_channels(page):
         refresh_item = xbmcgui.ListItem(label=__localize__(30037).format(page+2))
     
         # Use actually correct page number behind the scenes (page+1)
-        next_url = get_url(action='listing', mode=mode, page=page+1)
+        next_url = get_url(action='subscribed_channels', page=page+1)
         is_folder = True
         listing.append((next_url, refresh_item, is_folder))
 
-
+    # NOTE: Unfinished.
 
 
 # The menu for subscriptions
@@ -578,13 +583,16 @@ def subscriptions_menu():
     listing = []
 
     # Subscribed Channels
+    # TODO/NOTE: subscribed channels doesn't currently work.
+    # uncommited code on pc was simply pushed for others to see.
+    # need to fix channels before merging to main.
     channels = xbmcgui.ListItem(label=__localize__(30044))
     channelsURL = get_url(action='subscribed_channels')
     listing.append((channelsURL, channels, True))
 
     videos = xbmcgui.ListItem(label=__localize__(30045))
     videosURL = get_url(action='listing', mode='subscriptions')
-    listing.append(videosURL, videos, True)
+    listing.append((videosURL, videos, True))
 
     # Batch add once
     xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
@@ -639,7 +647,8 @@ def menu():
                 
                 # Subscriptions
                 subscriptions = xbmcgui.ListItem(label=__localize__(30027))
-                subscriptionsURL = get_url(action='listing', mode='subscriptions')
+                #subscriptionsURL = get_url(action='listing', mode='subscriptions')
+                subscriptionsURL = get_url(action='subscriptions')
                 # Append subscriptions to listing variable
                 listing.append((subscriptionsURL, subscriptions, is_folder))
 
@@ -1131,6 +1140,18 @@ def router(paramstring):
         delete_search(params['mode'], params['search'])
     elif params['action'] == 'playlists':
         playlists_menu()
+    # Show subscriptions menu
+    elif params['action'] == 'subscriptions':
+        subscriptions_menu()
+    # Show subscribed channels
+    elif params['action'] == 'subscribed_channels':
+        # Handle there being no page provided
+        try:
+            page = int(params.get('page', 0))
+        except:
+            page = 0
+
+        subscribed_channels(page)
     else:
         raise ValueError(f'Invalid paramstring: {paramstring}!')
 
