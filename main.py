@@ -509,7 +509,87 @@ def playlists_menu():
         error = dialog.notification(__localize__(30011), __localize__(30031).format(e), xbmcgui.NOTIFICATION_ERROR)
         traceback.print_exc()
         return False
- 
+
+# Get the subscribed channels
+# This is separated so it can be cached
+def get_subscribed_channels(page):
+    start = page * 15
+    queryParams = f"?start={start}&count=15"
+
+    # Get the access key
+    access_token = get_token()
+
+    # If there was an error, also cancel this function
+    if not access_token:
+        return []
+
+    headers = {"Authorization": f"Bearer {access_token}"}
+    request = requests.get(f"{API}/users/me/subscriptions{queryParams}", headers=headers)
+
+    r = request.json()
+    
+    # If there were no results
+    if "data" not in r or not r["data"]:
+        error = xbmcgui.Dialog().notification(__localize__(30011), __localize__(30032), xbmcgui.NOTIFICATION_ERROR)
+        raise StopExecution("No results were found", data=[])
+
+    # Return the data
+    return r["data"]
+
+# List the subscribed channels
+def subscribed_channels(page):
+    try:
+        channels = cache.cacheFunction(get_subscribed_channels, page)
+    except StopExecution:
+        return
+
+    # If there was an error upstream
+    # This should be covered by the except, though
+    if not channels:
+        return False
+
+    listing = []
+
+    for channel in channels:
+        channel = xbmcgui.ListItem(label=channel["displayName"])
+        channelURL = get_url(action='listing')
+
+    # Do a preliminary check to see if there's most likely another page
+    # This will still show a next page button even if the results end on a number divisible by 15
+    # Could do an API check in the future
+    if len(channels) == 15:
+        # Add a list item to load more
+        # Add two to the page number so it looks like the page starts at 1
+        # Improves UX
+        refresh_item = xbmcgui.ListItem(label=__localize__(30037).format(page+2))
+    
+        # Use actually correct page number behind the scenes (page+1)
+        next_url = get_url(action='listing', mode=mode, page=page+1)
+        is_folder = True
+        listing.append((next_url, refresh_item, is_folder))
+
+
+
+
+# The menu for subscriptions
+def subscriptions_menu():
+    dialog = xbmcgui.Dialog()
+    
+    listing = []
+
+    # Subscribed Channels
+    channels = xbmcgui.ListItem(label=__localize__(30044))
+    channelsURL = get_url(action='subscribed_channels')
+    listing.append((channelsURL, channels, True))
+
+    videos = xbmcgui.ListItem(label=__localize__(30045))
+    videosURL = get_url(action='listing', mode='subscriptions')
+    listing.append(videosURL, videos, True)
+
+    # Batch add once
+    xbmcplugin.addDirectoryItems(HANDLE, listing, len(listing))
+    xbmcplugin.endOfDirectory(HANDLE)
+
 # The selection menu of the addon
 def menu():
     # Check if the custom instance was set
